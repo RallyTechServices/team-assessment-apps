@@ -40,7 +40,8 @@ Ext.define("team-activity", {
 
        var calc = Ext.create('CATS.teamassessmentapps.utils.ActivityCalculator', {
           records: _.flatten(results),
-          timebox: this.getTimebox()
+          timebox: this.getTimebox(),
+          activeDays: this.getActiveDays()
        });
 
        var data = calc.getData(),
@@ -71,6 +72,9 @@ Ext.define("team-activity", {
         },{
           dataIndex: 'totalRecords',
           text: '# Work Items'
+        },{
+          dataIndex: 'activeRecords',
+          text: '# Active Items ( past ' + this.getActiveDays() + ' days)'
         },{
           dataIndex: 'acceptedRecords',
           text: 'Accepted Work Items'
@@ -104,7 +108,7 @@ Ext.define("team-activity", {
       var filters = null,
           config = {
             model: modelName,
-            fetch: ['InProgressDate','AcceptedDate','TestCaseStatus','PlanEstimate','Project','Name','ObjectID']
+            fetch: ['InProgressDate','AcceptedDate','TestCaseStatus','PlanEstimate','Project','Name','ObjectID','LastUpdateDate']
           };
 
       if (this.domainProjects){
@@ -144,5 +148,20 @@ Ext.define("team-activity", {
 
       config.filters = filters || [];
       return config;
+    },
+    getActiveDays: function(){
+       return this.getSetting('activeDays') || 3;
+    },
+    getSettingsFields: function(){
+       var cols = this.callParent();
+       cols.push({
+         xtype: 'rallynumberfield',
+         fieldLabel: 'Active Days',
+         name: 'activeDays',
+         labelAlign: 'right',
+         minValue: 1,
+         maxValue: 365
+       });
+       return cols;  
     }
 });

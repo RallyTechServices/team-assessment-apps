@@ -1,12 +1,24 @@
 Ext.define("team-users", {
     extend: 'CATS.teamassessmentapps.app.DomainApp',
 
+    config: {
+      defaultSettings: {
+         activeDays: 7,
+         showWorkItemData: true
+      }
+    },
+
     _updateView: function(){
 
           //Get Permissions
+
           var promises = Ext.Array.map(this.domainProjects, function(p){
               return CATS.teamassessmentapps.utils.UserUtility.fetchUsersByProject(p.get('ObjectID'));
           });
+          if (this.getShowWorkItemData()){
+            promises.push(CATS.teamassessmentapps.utils.WorkItemUtility.fetchWorkItemInfo(this.domainProjects));
+          }
+
           this.setLoading(true);
           Deft.Promise.all(promises).then({
               success: this._buildChart,
@@ -18,6 +30,9 @@ Ext.define("team-users", {
       },
       getShowTimebox: function(){
         return false;
+      },
+      getActiveDays: function(){
+         return this.getSetting('activeDays');
       },
       _export: function(){
          if (!this.down('rallygrid')){
@@ -57,8 +72,26 @@ Ext.define("team-users", {
         Ext.Array.each(this.domainProjects, function(d){
            data.push(CATS.teamassessmentapps.utils.UserUtility.calculateProjectUsage(d,results[idx++]));
         });
+        if (results[idx]){ //this is workitem results
+            var workItemData = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(results[idx], this.getActiveDays());
+            Ext.Array.each(data, function(d){
+               if (workItemData[d.team]){
+                  d.totalWorkItems = workItemData[d.team].totalSnaps;
+                  d.activeWorkItems = workItemData[d.team].activeSnaps;
+                  d.activeUsers = workItemData[d.team].activeUsers;
+               } else {
+                 d.totalWorkItems = 0;
+                 d.activeWorkItems = 0;
+                 d.activeUsers = 0;
+                }
+            });
+            this.logger.log('workItemData', workItemData);
+        }
 
         var chartData = {};
+        totalWorkItemsDiff = Ext.Array.map(data, function(d){
+           return d.totalWorkItems - d.activeWorkItems;
+        });
         chartData.series = [
           {name: 'Viewer', data: _.pluck(data, 'viewer'), stack: 0},
           {name: 'Editor', data: _.pluck(data, 'editor'), stack: 0},
@@ -66,14 +99,20 @@ Ext.define("team-users", {
           {name: 'Workspace Admin', data: _.pluck(data, 'workspaceAdmin'), stack: 0},
           {name: 'Subscription Admin', data: _.pluck(data, 'subscriptionAdmin'), stack: 0},
           {name: 'Disabled', data: _.pluck(data, 'disabled'), stack: 0},
-          {name: 'Team Member', data: _.pluck(data, 'teamMember'), stack: 1},
+          {name: 'Team Member', data: _.pluck(data, 'teamMember'), stack: 1}
         ];
+        if (this.getShowWorkItemData()){
+          chartData.series = chartData.series.concat([{name: 'Active Users (Last ' + this.getActiveDays() + ' days)', data: _.pluck(data, 'activeUsers'), stack: 2},
+            {name: 'Total Work Items', data: totalWorkItemsDiff, stack: 3, yAxis: 1},
+            {name: 'Active Work Items (Last ' + this.getActiveDays() + ' days)', data: _.pluck(data, 'activeWorkItems'), stack: 3, yAxis: 1}]
+          );
+        }
         chartData.categories = _.pluck(data, 'team');
 
         this.logger.log('chartData', chartData);
         this.add({
           xtype: 'rallychart',
-          chartColors: ['#BDD7EA','#7CAFD7','#005EB8','#FF8200','#B81B10','#E6E6E6','#FAD200'],
+          chartColors: ['#BDD7EA','#7CAFD7','#005EB8','#FF8200','#B81B10','#E6E6E6','#FAD200','#3a874f','#A9A9A9','#b2e3b6'],
           chartConfig: {
              chart: {
                   type: 'bar'
@@ -98,7 +137,7 @@ Ext.define("team-users", {
                     }
                   }
               },
-              yAxis: {
+              yAxis: [{
                   min: 0,
                   title: {
                       text: 'Users',
@@ -117,7 +156,27 @@ Ext.define("team-users", {
                           fill:'#444'
                       }
                   }
-              },
+              },{
+                  min: 0,
+                  title: {
+                      text: 'Work Items',
+                      style: {
+                          color: '#444',
+                          fontFamily:'ProximaNova',
+                          textTransform: 'uppercase',
+                          fill:'#444'
+                      }
+                  },
+                  labels: {
+                      style: {
+                          color: '#444',
+                          fontFamily:'ProximaNova',
+                          textTransform: 'uppercase',
+                          fill:'#444'
+                      }
+                  },
+                  opposite: true
+              }],
               legend: {
                 reversed: true,
                 verticalAlign: 'top',
@@ -163,11 +222,26 @@ Ext.define("team-users", {
      },
 
      getColumnCfgs: function(){
-         return [{
-           dataIndex: 'team',
-           text: 'Team',
-           flex: 1
+
+       var cols = [{
+         dataIndex: 'team',
+         text: 'Team',
+         flex: 1
+       }];
+
+       if (this.getShowWorkItemData()){
+         cols = cols.concat([{
+           dataIndex: 'totalWorkItems',
+           text: 'Total Work Items'
          },{
+           dataIndex: 'activeWorkItems',
+           text: 'Active Work Items (Last ' + this.getActiveDays() + ' Days)'
+         },{
+           dataIndex: 'activeUsers',
+           text: 'Active Users (Last ' + this.getActiveDays() + ' Days)'
+         }]);
+       }
+        cols = cols.concat([{
            dataIndex: 'totalAccess',
            text: 'Total Users'
          },{
@@ -188,7 +262,11 @@ Ext.define("team-users", {
          },{
            dataIndex: 'subscriptionAdmin',
            text: 'Subscription Admins'
-         }];
+         }]);
+         return cols;
+     },
+     getShowWorkItemData: function(){
+        return (this.getSetting('showWorkItemData') === 'true' || this.getSetting('showWorkItemData') === true)
      },
      getSettingsFields: function(){
           return [{
@@ -209,6 +287,16 @@ Ext.define("team-users", {
               }
               return false;
             }
+          },{
+            xtype: 'rallynumberfield',
+            name: 'activeDays',
+            fieldLabel: 'Active Days',
+            minValue: 1,
+            maxValue: 365
+          },{
+            xtype: 'rallycheckboxfield',
+            name: 'showWorkItemData',
+            fieldLabel: 'Show Work Item Data'
           }];
       },
   });
