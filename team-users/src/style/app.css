@@ -15,3 +15,18 @@
     margin-right: 5px;
     cursor: pointer;
 }
+
+.highcharts-tooltip {
+    font-family:NotoSansBold;
+    color:white;
+}
+.tooltip-point {
+    text-align: right;
+    color: white;
+}
+.tooltip-label {
+    font-family:NotoSans;
+    white-space:nowrap;
+    font-size:13px;
+    color:white;
+}

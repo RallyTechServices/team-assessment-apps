@@ -60,7 +60,7 @@ Ext.define("team-users", {
         this.logger.log('_buildChart', results);
 
         this.down('rallygrid') && this.down('rallygrid').destroy();
-        this.down('rallychart') && this.down('rallychart').destroy();
+        this.down('#userChart') && this.down('#userChart').destroy();
 
         if (!this.domainProjects || this.domainProjects.length === 0 ){
            Rally.ui.notify.Notifier.showWarning({message: "No projects selected."});
@@ -79,10 +79,12 @@ Ext.define("team-users", {
                   d.totalWorkItems = workItemData[d.team].totalSnaps;
                   d.activeWorkItems = workItemData[d.team].activeSnaps;
                   d.activeUsers = workItemData[d.team].activeUsers;
+                  d.createdDates = workItemData[d.team].workItemCreation;
                } else {
                  d.totalWorkItems = 0;
                  d.activeWorkItems = 0;
                  d.activeUsers = 0;
+                 d.createdDates = {};
                 }
             });
             this.logger.log('workItemData', workItemData);
@@ -112,6 +114,7 @@ Ext.define("team-users", {
         this.logger.log('chartData', chartData);
         this.add({
           xtype: 'rallychart',
+          itemId: 'userChart',
           chartColors: ['#BDD7EA','#7CAFD7','#005EB8','#FF8200','#B81B10','#E6E6E6','#FAD200','#3a874f','#A9A9A9','#b2e3b6'],
           chartConfig: {
              chart: {
@@ -178,7 +181,7 @@ Ext.define("team-users", {
                   opposite: true
               }],
               legend: {
-                reversed: true,
+                reversed: false,
                 verticalAlign: 'top',
                 itemStyle: {
                         color: '#444',
@@ -196,7 +199,140 @@ Ext.define("team-users", {
           },
           chartData: chartData
         });
+
+        if (this.getShowWorkItemData()){
+          this._buildGrowthChart(data);
+        }
         this._buildGrid(data);
+      },
+      _buildGrowthChart: function(data){
+        this.down('#growthChart') && this.down('#growthChart').destroy();
+        var series = []
+        Ext.Array.each(data, function(d){
+           var s = {
+              name: d.team,
+              data: []
+           };
+
+           var cumulativeTotal = 0,
+              currentDate = new Date(),
+              currentYear = currentDate.getFullYear(),
+              currentMonth = currentDate.getMonth(),
+              currentDay = currentDate.getDate();
+
+           Ext.Object.each(d.createdDates, function(dt,count){
+              cumulativeTotal += count;
+              var year = dt.substring(0,4),
+                  month = Number(dt.substring(5,7)) - 1,
+                  day = dt.substring(8,10);
+              s.data.push([Date.UTC(year, month, day),cumulativeTotal]);
+           });
+          // s.data.push([Date.UTC(currentYear, currentMonth, currentDay), cumulativeTotal]);
+           series.push(s);
+        });
+
+        this.add({
+          xtype: 'rallychart',
+          itemId: 'growthChart',
+          chartColors: ['#B81B10','#CADDA3','#7CAFD7','#FF8200','#FAD200','#3a874f','#7832A5','#00B398','#105CAB','#EE6C19'],
+          chartConfig: {
+            chart: {
+                type: 'spline'
+            },
+            title: {
+                text: "Work Item Growth",
+                style: {
+                  color: '#666',
+                  fontSize: '18px',
+                  fontFamily: 'ProximaNova',
+                  fill: '#666'
+              }
+            },
+            xAxis: {
+                type: 'datetime',
+                dateTimeLabelFormats: { // don't display the dummy year
+                    month: "%B %Y",
+                    year: "%Y"
+                },
+                title: {
+                    text: 'Date',
+                    style: {
+                        color: '#444',
+                        fontFamily:'ProximaNova',
+                        textTransform: 'uppercase',
+                        fill:'#444'
+                    }
+                },
+                labels: {
+                    style: {
+                        color: '#444',
+                        fontFamily:'ProximaNova',
+                        textTransform: 'uppercase',
+                        fill:'#444'
+                    }
+                },
+            },
+            yAxis: {
+              title: {
+                  text: 'Work Item Count',
+                  style: {
+                      color: '#444',
+                      fontFamily:'ProximaNova',
+                      textTransform: 'uppercase',
+                      fill:'#444'
+                  }
+              },
+              labels: {
+                  style: {
+                      color: '#444',
+                      fontFamily:'ProximaNova',
+                      textTransform: 'uppercase',
+                      fill:'#444'
+                  }
+              },
+                min: 0
+            },
+            legend: {
+              reversed: false,
+              itemStyle: {
+                      color: '#444',
+                      fontFamily:'ProximaNova',
+                      textTransform: 'uppercase'
+              },
+              borderWidth: 0
+            },
+            tooltip: {
+              backgroundColor: '#444',
+              headerFormat: '<span style="display:block;margin:0;padding:0 0 2px 0;text-align:center"><b style="font-family:NotoSansBold;color:white;">{series.name}</b></span><table><tbody>',
+              footerFormat: '</tbody></table>',
+              pointFormat: '<tr><td class="tooltip-label"><span style="color:{series.color};width=100px;">\u25CF</span></td><td class="tooltip-point">{point.x:%B %Y}: {point.y:.2f}</td></tr>',
+              useHTML: true
+            },
+
+            plotOptions: {
+                spline: {
+                    marker: {
+                        enabled: true
+                    }
+                }
+            },
+          },
+          chartData: {
+            series: series
+          }
+        });
+
+        //
+        // chartData.series = [
+        //   {name: 'Viewer', data: _.pluck(data, 'viewer'), stack: 0},
+        //   {name: 'Editor', data: _.pluck(data, 'editor'), stack: 0},
+        //   {name: 'Project Admin', data: _.pluck(data, 'projectAdmin'), stack: 0},
+        //   {name: 'Workspace Admin', data: _.pluck(data, 'workspaceAdmin'), stack: 0},
+        //   {name: 'Subscription Admin', data: _.pluck(data, 'subscriptionAdmin'), stack: 0},
+        //   {name: 'Disabled', data: _.pluck(data, 'disabled'), stack: 0},
+        //   {name: 'Team Member', data: _.pluck(data, 'teamMember'), stack: 1}
+        // ];
+
       },
       _buildGrid: function(data){
         this.logger.log('_buildGrid', data);
