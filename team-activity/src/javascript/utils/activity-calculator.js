@@ -8,6 +8,7 @@ Ext.define('CATS.teamassessmentapps.utils.ActivityCalculator',{
    constructor: function(config){
       this.records = config.records,
       this.timebox = config.timebox || {};
+      this.activeDays = config.activeDays;
    },
    _mungeTestCoverage:function(records){
       var tcHash =  this._getCountByValueHash(records, 'TestCaseStatus');
@@ -89,6 +90,16 @@ Ext.define('CATS.teamassessmentapps.utils.ActivityCalculator',{
       return false;
 
    },
+   _calculateActiveItems: function(records){
+      var date = Rally.util.DateTime.add(new Date(), 'day', -this.activeDays),
+          active = 0;
+      Ext.Array.each(records, function(r){
+           if (r.LastUpdateDate >= date){
+              active++;
+           }
+      });
+      return active;
+   },
    getData: function(){
         //Project Name, stories/defects accepted in the past timebox, avg cycletime, test coverage
         var projectHash = this._getRecordsByProjectOidHash(this.records),
@@ -102,7 +113,8 @@ Ext.define('CATS.teamassessmentapps.utils.ActivityCalculator',{
                inProgressRecs = Ext.Array.filter(recs, function(r){ return r.InProgressDate && !r.AcceptedDate; });
                inProgressCount = this._mungeDateInRange(inProgressRecs, 'InProgressDate', startDate, endDate),
                avgCycleTime = this._calculateCycleTime(recs),
-               tcHash = this._mungeTestCoverage(recs);
+               tcHash = this._mungeTestCoverage(recs),
+               activeRecords = this._calculateActiveItems(recs);
 
            var row = {
               projectName: name,
@@ -110,6 +122,7 @@ Ext.define('CATS.teamassessmentapps.utils.ActivityCalculator',{
               acceptedRecords: acceptedRecs,
               inProgressRecords: inProgressCount,
               averageCycleTime: avgCycleTime,
+              activeRecords: activeRecords
            }
 
            row = Ext.Object.merge(row, tcHash);
