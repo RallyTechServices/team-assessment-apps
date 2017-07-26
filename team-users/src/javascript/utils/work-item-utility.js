@@ -11,9 +11,13 @@ Ext.define('CATS.teamassessmentapps.utils.WorkItemUtility',{
               snaps[prj] = {
                  totalSnaps: 0,
                  activeSnaps: 0,
-                 activeUsers: []
+                 activeUsers: [],
+                 workItemCreation: []
               };
            }
+           var day = Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(snap.CreationDate),'Y-m-d');
+           snaps[prj].workItemCreation.push(day);
+
            snaps[prj].totalSnaps++;
            var dt = Rally.util.DateTime.fromIsoString(snap._ValidFrom);
            if (dt >= activeDate){
@@ -22,12 +26,27 @@ Ext.define('CATS.teamassessmentapps.utils.WorkItemUtility',{
            }
         }
 
+
         Ext.Object.each(snaps, function(p,obj){
            obj.activeUsers = _.uniq(obj.activeUsers).length;
-        });
+           obj.workItemCreation = this._arrayToHashCount(obj.workItemCreation)
+        }, this);
 
         return snaps;
 
+    },
+    _arrayToHashCount: function(ar){
+       var hash = {};
+
+       ar = Ext.Array.sort(ar);
+
+       for (var i=0; i<ar.length; i++){
+          if (!hash[ar[i]]){
+            hash[ar[i]] = 0;
+          }
+          hash[ar[i]]++;
+       }
+       return hash;
     },
     fetchWorkItemInfo: function(projects){
       var deferred = Ext.create('Deft.Deferred');
