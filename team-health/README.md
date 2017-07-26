@@ -1,68 +1,21 @@
-# Team Users View
-
-A view of user permission and work item information (if configured) per project.  
+# Team Domain Health
 
 ## Summary/Description
 
-![screenshot](./images/team-users.png "This is an example")
-
-This app can show information for either child projects in the currently selected scope, or projects grouped by a custom attribute on the project object (also referred to as "Domain").  This can be setup in the App Settings.  
-
-A project "Domain" may be used for when you would like to see projects grouped together outside of the project hierarchy in Agile Central.  
-
-#### Metrics
-##### Active Work Items
-If "Show Work Item Data" is configured, this will show the number of artifacts (Portfolio Items, Stories, Defects, Tasks, etc) in the project updated within the last N days where N is the "Active Days" configuration.  See app settings for more detail on the configuration.  
-
-##### Total Work Items
-If "Show Work Item Data" is configured, this will show the total number of artifacts (Portfolio Items, Stories, Defects, Tasks, etc) in the project updated within the last N days where N is the "Active Days" configuration.  See app settings for more detail on the configuration.  
-
-##### Active Users
-If "Show Work Item Data" is configured, this will show the total number of unique users that updated artifacts in the last N number of days. N is the "Active Days" configuration.  See app settings for more detail on the configuration.  
-
-##### Team Member
-The number of team members for the current project.  
-
-##### Disabled
-The number of disabled users that have permissions in the current project.  Note that disabled users cannot access the project, but if they are re-enabled, will have access to the project.  
-
-##### Subscription Admin
-The number of Subscription Administrators for the Subscription.
-
-##### Workspace Admin
-The number of Workspace Administrators (not including Disabled users) for the current workspace.
-
-##### Project Admin
-The number of Project Administrators (not including Disabled users) for the current project.
-
-##### Editor
-The number of editors (not including Disabled users) for the current project.  
-
-##### Viewer
-The number of Viewers (not including Disabled users) for the current project.  
-
-### App Settings
-##### Project Domain Field
-If not using the project scope for the projects to show, select a custom dropdown field on the project.  This will give you the option to show projects grouped by the value of this field.   
-
-##### Active Days
-If "Show Work Item Data" is selected, this will be applicable to the "Active Work Items" and "Active Users" metrics.  This will determine how many days back from the current point in time a change needs to be made for a work item to be considered "active" or for a user to be considered "active" for the project.  
-
-##### Show Work Item Data
-Select true to show work item information.  Work Item Information (Total Work Items, Active Work Items and Active Users) uses the lookback API to gather data.  If running On-Premise or the lookback API is down or causing performance issues, then uncheck this box and the lookback API will not be queried.   
+![screenshot](./images/screenshot.png "This is an example")
 
 ## Development Notes
 
 
 ### First Load
 
-If you've just downloaded this from github and you want to do development,
+If you've just downloaded this from github and you want to do development, 
 you're going to need to have these installed:
 
  * node.js
  * grunt-cli
  * grunt-init
-
+ 
 Since you're getting this from github, we assume you have the command line
 version of git also installed.  If not, go get git.
 
@@ -73,15 +26,15 @@ to get set up to develop:
 
 ### Structure
 
-  * src/javascript:  All the JS files saved here will be compiled into the
+  * src/javascript:  All the JS files saved here will be compiled into the 
   target html file
-  * src/style: All of the stylesheets saved here will be compiled into the
+  * src/style: All of the stylesheets saved here will be compiled into the 
   target html file
-  * test/fast: Fast jasmine tests go here.  There should also be a helper
+  * test/fast: Fast jasmine tests go here.  There should also be a helper 
   file that is loaded first for creating mocks and doing other shortcuts
   (fastHelper.js) **Tests should be in a file named <something>-spec.js**
   * test/slow: Slow jasmine tests go here.  There should also be a helper
-  file that is loaded first for creating mocks and doing other shortcuts
+  file that is loaded first for creating mocks and doing other shortcuts 
   (slowHelper.js) **Tests should be in a file named <something>-spec.js**
   * templates: This is where templates that are used to create the production
   and debug html files live.  The advantage of using these templates is that
@@ -97,10 +50,10 @@ to get set up to develop:
         "password":"secret",
         "server": "https://rally1.rallydev.com"
     }
-
+  
 ### Usage of the grunt file
 ####Tasks
-
+    
 ##### grunt debug
 
 Use grunt debug to create the debug html file.  You only need to run this when you have added new files to
@@ -112,7 +65,7 @@ Use grunt build to create the production html file.  We still have to copy the h
 
 ##### grunt test-fast
 
-Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast
+Use grunt test-fast to run the Jasmine tests in the fast directory.  Typically, the tests in the fast 
 directory are more pure unit tests and do not need to connect to Rally.
 
 ##### grunt test-slow
@@ -154,3 +107,5 @@ Run this to watch files (js and css).  When a file is saved, the task will autom
 ##### grunt --help  
 
 Get a full listing of available targets.
+
+
