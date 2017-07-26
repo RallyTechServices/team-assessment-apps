@@ -10,7 +10,7 @@ This app can show information for either child projects in the currently selecte
 
 A project "Domain" may be used for when you would like to see projects grouped together outside of the project hierarchy in Agile Central.  
 
-Work Item Growth chart shows the growth of *all artifacts* over the course of time.  The Work Item growth shows only current artifacts and does not include artifacts that have been deleted or moved into another project since they were created.  
+Work Item Growth chart shows the growth of *all artifacts* over the course of time.  The Work Item growth shows only current artifacts and does not include artifacts that have been deleted or moved into another project since they were created.  The chart uses the "Creation Date" field of the artifact so if an artifact was created in another project and moved to the current project, it *will* be included in the count for the current project.  
 
 #### Metrics
 ##### Active Work Items

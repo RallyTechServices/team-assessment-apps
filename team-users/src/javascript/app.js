@@ -251,7 +251,8 @@ Ext.define("team-users", {
             xAxis: {
                 type: 'datetime',
                 dateTimeLabelFormats: { // don't display the dummy year
-                    month: "%B %Y",
+                    week: '%e %b',
+                    month: "%b %Y",
                     year: "%Y"
                 },
                 title: {
@@ -305,7 +306,7 @@ Ext.define("team-users", {
               backgroundColor: '#444',
               headerFormat: '<span style="display:block;margin:0;padding:0 0 2px 0;text-align:center"><b style="font-family:NotoSansBold;color:white;">{series.name}</b></span><table><tbody>',
               footerFormat: '</tbody></table>',
-              pointFormat: '<tr><td class="tooltip-label"><span style="color:{series.color};width=100px;">\u25CF</span></td><td class="tooltip-point">{point.x:%B %Y}: {point.y:.2f}</td></tr>',
+              pointFormat: '<tr><td class="tooltip-label"><span style="color:{series.color};width=100px;">\u25CF</span></td><td class="tooltip-point">{point.x:%e %b %Y}: {point.y}</td></tr>',
               useHTML: true
             },
 
