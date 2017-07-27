@@ -61,8 +61,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
          this._updateView();
        }
     },
-    _initializeApp: function(){
-
+    _initializeApp: function(additionalItems){
+      this.logger.log('_initializeApp', additionalItems);
       this.removeAll();
       var selectorBox = this.add({
         itemId: 'selectorBox',
@@ -82,6 +82,12 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             noEntryText: '-- Follow Project Scope --'
           });
           pd.on('select', this._updateDomainProjects, this);
+       }
+
+       if (additionalItems){
+          Ext.Array.each(additionalItems, function(a){
+             selectorBox.add(a);
+          });
        }
 
        if (!this.getUseDashboardTimeboxScope() && this.getShowTimebox()){
@@ -174,6 +180,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
         this._showErrorNotification("Please implement the _updateView method.");
     },
     _showErrorNotification: function(msg){
+      this.setLoading(false);
       Rally.ui.notify.Notifier.showError({message: msg});
     },
     _fetchWsapiRecords: function(config){
@@ -186,8 +193,12 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
          config.pageSize = 2000;
        }
 
+       config.enablePostGet = true;
+       config.context = {project: null}
+
        Ext.create('Rally.data.wsapi.Store',config).load({
          callback: function(records, operation, success){
+            console.log('_fetchWsapiRecords', records, operation, success);
             if (success){
               deferred.resolve(records);
             } else {
