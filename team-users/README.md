@@ -13,6 +13,7 @@ A project "Domain" may be used for when you would like to see projects grouped t
 Work Item Growth chart shows the growth of *all artifacts* over the course of time.  The Work Item growth shows only current artifacts and does not include artifacts that have been deleted or moved into another project since they were created.  The chart uses the "Creation Date" field of the artifact so if an artifact was created in another project and moved to the current project, it *will* be included in the count for the current project.  
 
 #### Metrics
+
 ##### Active Work Items
 If "Show Work Item Data" is configured, this will show the number of artifacts (Portfolio Items, Stories, Defects, Tasks, etc) in the project updated within the last N days where N is the "Active Days" configuration.  See app settings for more detail on the configuration.  
 
@@ -42,6 +43,9 @@ The number of editors (not including Disabled users) for the current project.
 
 ##### Viewer
 The number of Viewers (not including Disabled users) for the current project.  
+
+
+
 
 ### App Settings
 ##### Project Domain Field
