@@ -3,13 +3,13 @@
 <head>
     <title>Team Domain Health</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Sat Jul 29 2017 10:13:27 GMT-0600 (MDT) -->
+    <!--  Build Date: Sat Jul 29 2017 10:13:55 GMT-0600 (MDT) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Sat Jul 29 2017 10:13:27 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Sat Jul 29 2017 10:13:55 GMT-0600 (MDT)";
         var STORY    = "US1658";
         var BUILDER  = "corkr03";
-        var CHECKSUM = 59167787809;
+        var CHECKSUM = 59167788162;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>
