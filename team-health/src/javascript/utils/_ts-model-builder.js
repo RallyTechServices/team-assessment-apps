@@ -25,24 +25,21 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
           }
       }
     },{
-        name: '__plannedPoints',
+        name: '__planned',
         defaultValue: -1
     },{
-        name: '__plannedCount',
+        name: '__currentPlanned',
         defaultValue: -1
     },{
-        name: '__acceptedAfterSprintEndPoints',
+        name: '__velocity',
         defaultValue: -1
     },{
-        name: '__acceptedAfterSprintEndPoints',
+        name: '__acceptedAfterSprintEnd',
         defaultValue: -1
     },{
-        name: '__acceptedAfterSprintEndCount',
+        name: '__acceptedAfterSprintEnd',
         defaultValue: -1
     },{
-        name: '__acceptedAfterSprintEndCount',
-        defaultValue: -1
-      },{
         name: '__addedScope',
         defaultValue: -1
     },{
@@ -62,29 +59,8 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         name: '__ratioInProgress',
         defaultValue: -1
     },{
-        name: '__endAcceptanceRatio',
-        defaultValue: -1 //2
-    },{
-        name: '__taskChurn',
-        defaultValue: -2
-    },{
-        name: '__scopeChurn',
-        defaultValue: -2
-    },{
-        name: '__velocity',
-        defaultValue: -2
-    },{
         name: '__currentVelocity',
         defaultValue: -2
-    },{
-        name: '__cycleTime',
-        defaultValue: -2
-    },{
-        name: '__sayDoRatioData',
-        type: 'object'
-    },{
-        name: '__cfdRecords',
-        type: 'object'
     }],
     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
         this.resetDefaults();
@@ -94,29 +70,27 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         }
 
         if (this.get('__artifacts')){
-           this._mungeArtifacts(this.get('__artifacts'));
+           this._mungeArtifacts(this.get('__artifacts'), usePoints);
         }
     },
     resetDefaults: function(){
-        this.set('__ratioInProgress',-1);
-        this.set('__endCompletionRatio', -1);
-        this.set('__endAcceptanceRatio'-1);
-        this.set('__taskChurn', -2);
-        this.set('__scopeChurn', -2);
-        this.set('__cycleTime',-2);
-        this.set('__acceptedAfterSprintEndCount', -1);
-        this.set('__acceptedAtSprintEndCount', -1);
-        this.set('__acceptedAfterSprintEndPoints', -1);
-        this.set('__acceptedAtSprintEndPoints', -1);
-
+        this.set('__ratioEstimated',-1);
+        this.set('__planned', -1);
+        this.set('__velocity'-1);
+        this.set('__acceptedAfterSprintEnd', -1);
+        this.set('__acceptedAtSprintEnd', -1);
+        this.set('__addedScope',-1);
+        this.set('__removedScope',-1);
     },
     _setError: function(){
         var errorString = 'Error';
-        this.set('__ratioInProgress', errorString);
-        this.set('__endAcceptanceRatio', errorString);
-        this.set('__endCompletionRatio', errorString);
-        this.set('__scopeChurn',errorString);
-        this.set('__taskChurn',errorString);
+        this.set('__ratioEstimated',errorString);
+        this.set('__planned', errorString);
+        this.set('__velocity',errorString);
+        this.set('__acceptedAfterSprintEnd', errorString);
+        this.set('__acceptedAtSprintEnd', errorString);
+        this.set('__addedScope',errorString);
+        this.set('__removedScope',errorString);
     },
     _processCFD: function(records, iteration, usePoints, doneStates){
 
@@ -135,7 +109,6 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
                 if (usePoints === false){
                     card_total = cf.CardCount || 0;
                 }
-                this.logger.log('cardcount',this.get('Name'),card_state,card_date, cf.CardCount, cf.CardEstimateTotal,card_task_estimate);
                 if (!daily_totals[card_date]){
                     daily_totals[card_date] = {};
                 }
@@ -158,29 +131,20 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
             inprogress_state = "In-Progress",
             days = this.get('__days');
 
-        //this.logger.log('totals',this.get('Name'),daily_totals, daily_task_estimate_totals, doneStates);
-
         var avg_daily_in_progress = Rally.technicalservices.util.Health.getAverageInState(daily_totals, inprogress_state);
-        //this.logger.log('avg_daily_inprogress',this.get('Name'), avg_daily_in_progress)
         if (avg_daily_in_progress > 0){
             this.set('__ratioInProgress',avg_daily_in_progress);
         }
-
-        this.set('__endAcceptanceRatio', Rally.technicalservices.util.Health.getAcceptanceRatio(daily_totals, doneStates))
 
         var scopeAdditions = Rally.technicalservices.util.Health.getScopeAdditions(daily_totals, usePoints);
         this.set('__addedScope', scopeAdditions);
         var scopeRemovals = Rally.technicalservices.util.Health.getScopeRemovals(daily_totals, usePoints);
         this.set('__removedScope', scopeRemovals);
-
-        var task_churn = Rally.technicalservices.util.Health.getTaskChurn(daily_task_estimate_totals);
-        //this.logger.log('__taskChurn', 'getTaskChurn', this.get('Name'), task_churn);
-        if (task_churn !== null){
-            this.set('__taskChurn',task_churn);
-        }
-
         var velocity = Rally.technicalservices.util.Health.getVelocity(daily_totals, doneStates);
         this.set('__velocity', velocity);
+
+        var planned = Rally.technicalservices.util.Health.getPlanned(daily_totals);
+        this.set('__planned', planned);
 
     },
     /**
@@ -201,7 +165,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         }
         return false;
     },
-    _mungeArtifacts: function(records){
+    _mungeArtifacts: function(records, usePoints){
        var count_of_estimated_artifacts = 0;
 
         var this_velocity = 0,
@@ -215,29 +179,34 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
             var plan_estimate = artifact.PlanEstimate;
             planned_points += (plan_estimate || 0);
             this_count++;
-            if (!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) {
-                count_of_estimated_artifacts++;
-                if (artifact.AcceptedDate){
-                    this_velocity += plan_estimate;
-                    this_velocity_count++;
-                    if (artifact.AcceptedDate <= this.get('__iteration').EndDate){
-                        end_velocity += plan_estimate;
-                        end_velocity_count++;
-                    }
-                }
+            if ((!Ext.isEmpty(plan_estimate) && plan_estimate >= 0) || !usePoints) {
+                  count_of_estimated_artifacts++;
+                  if (artifact.AcceptedDate){
+                      this_velocity += plan_estimate;
+                      this_velocity_count++;
+                      if (artifact.AcceptedDate <= this.get('__iteration').EndDate){
+                          end_velocity += plan_estimate;
+                          end_velocity_count++;
+                      }
+                  }
             }
         }, this);
 
-        this.set('__plannedCount', this_count);
-        this.set('__plannedPoints', planned_points);
-        if (planned_points){
-          this.set('__acceptedAfterSprintEndPoints', (this_velocity - end_velocity)/planned_points);  // this uses velocity that is as of now
-          this.set('__acceptedAtSprintEndPoints', end_velocity/planned_points);
+        if (usePoints){
+        this.set('__currentPlanned', planned_points);
+          if (planned_points){
+            this.set('__acceptedAfterSprintEnd', (this_velocity - end_velocity)/planned_points);  // this uses velocity that is as of now
+            this.set('__acceptedAtSprintEnd', end_velocity/planned_points);
+          }
+        } else {
+          this.set('__currentPlanned', this_count);
+          if (this_count){
+            this.set('__acceptedAfterSprintEnd', (this_velocity_count - end_velocity_count)/this_count);  // this uses velocity that is as of now
+            this.set('__acceptedAtSprintEnd', end_velocity_count/this_count);
+          }
         }
 
         if (this_count > 0){
-            this.set('__acceptedAfterSprintEndCount', (this_velocity_count - end_velocity_count)/this_count);  // this uses velocity that is as of now
-            this.set('__acceptedAtSprintEndCount', end_velocity_count/this_count);
             this.set('__ratioEstimated',count_of_estimated_artifacts/this_count);
         }
     }

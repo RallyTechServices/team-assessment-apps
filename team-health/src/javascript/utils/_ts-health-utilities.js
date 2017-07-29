@@ -6,7 +6,7 @@ Ext.define('Rally.technicalservices.util.Health',{
      *
      * returns the standard deviation
      */
-    getScopeAdditions: function(health_hash, usePoints){
+    getScopeAdditions: function(health_hash){
       var totals = [],
           days = _.keys(health_hash);
 
@@ -22,7 +22,7 @@ Ext.define('Rally.technicalservices.util.Health',{
       }
       return added;
     },
-    getScopeRemovals: function(health_hash, usePoints){
+    getScopeRemovals: function(health_hash){
       var totals = [],
           days = _.keys(health_hash);
 
@@ -36,6 +36,7 @@ Ext.define('Rally.technicalservices.util.Health',{
             removed += (totals[i] - totals[i+1]);
          }
       }
+      if (isNaN(removed)){ return -1; }
       return removed;
     },
     getStandardDeviation: function(an_array){
@@ -158,6 +159,13 @@ Ext.define('Rally.technicalservices.util.Health',{
         var done_hash = Rally.technicalservices.util.Health.getDoneStatesHash(health_hash, done_states);
         var days = _.sortBy(_.keys(done_hash), function(date){return Date.parse(date)});
         return done_hash[days[days.length-1]] || 0;
+    },
+    getPlanned: function(health_hash){
+      var days = _.sortBy(_.keys(health_hash), function(date){return Date.parse(date)});
+      var day_0 = _.values(health_hash[days[0]]);
+      console.log('day_0',health_hash[days[0]],day_0);
+      return Ext.Array.sum(day_0) || 0;
+      return Ext.Array.sum(health_hash[days[0]]) || 0;
     },
     getHalfAcceptanceRatio:function(health_hash, done_states, num_days_in_iteration){
 
