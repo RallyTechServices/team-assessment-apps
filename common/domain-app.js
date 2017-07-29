@@ -13,7 +13,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
 
     launch: function() {
       this.logger.log('launch', this.getSettings());
-        this._initializeApp();
+      this._initializeApp();
     },
     getShowTimebox: function(){
       return true;
@@ -32,8 +32,10 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
     getTimebox: function(){
        this.logger.log('getTimebox', this.getUseDashboardTimeboxScope(), this.getContext().getTimeboxScope());
        if (this.getUseDashboardTimeboxScope()){
+
          var startDateField = "StartDate",
             endDateField = "EndDate";
+
          if (this.getContext().getTimeboxScope().type.toLowerCase() === 'release'){
             startDateField = "ReleaseStartDate";
             endDateField = "ReleaseDate";
@@ -43,6 +45,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             startDate: this.getContext().getTimeboxScope().getRecord().get(startDateField),
             endDate: this.getContext().getTimeboxScope().getRecord().get(endDateField)
          }
+
        }
        return {
           startDate: this.down('#startDate').getValue(),
@@ -61,8 +64,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
          this._updateView();
        }
     },
-    _initializeApp: function(additionalItems){
-      this.logger.log('_initializeApp', additionalItems);
+    _initializeApp: function(args){
+      this.logger.log('_initializeApp', args);
       this.removeAll();
       var selectorBox = this.add({
         itemId: 'selectorBox',
@@ -84,8 +87,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
           pd.on('select', this._updateDomainProjects, this);
        }
 
-       if (additionalItems){
-          Ext.Array.each(additionalItems, function(a){
+       if (args){
+          Ext.Array.each(args, function(a){
              selectorBox.add(a);
           });
        }
@@ -156,6 +159,11 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
               properties.push('Parent');
            }
 
+           parentFilters.push({
+             property: 'ObjectID',
+             value: this.getContext().getProject().ObjectID
+           });
+
            parentFilters = Rally.data.wsapi.Filter.or(parentFilters);
            parentFilters.and({
              property: 'State',
@@ -198,7 +206,6 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
 
        Ext.create('Rally.data.wsapi.Store',config).load({
          callback: function(records, operation, success){
-            console.log('_fetchWsapiRecords', records, operation, success);
             if (success){
               deferred.resolve(records);
             } else {
@@ -206,14 +213,16 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             }
          }
        });
-
        return deferred;
     },
     getSettingsFields: function(){
-        return [{
+        var fields = [{
           xtype: 'rallyfieldcombobox',
           fieldLabel: 'Project Domain Field',
           model: 'Project',
+          labelWidth: 150,
+          labelAlign: 'right',
+          labelCls: 'sliderlabel',
           name: 'projectDomainField',
           allowBlank: true,
           noEntryText: '-- Follow Project Scope --',
@@ -227,12 +236,22 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
                 return true;
             }
             return false;
+          },
+          listeners:{
+             ready: function(cb){
+                cb.getStore().add({name: '-- Follow Project Scope --', value: null});
+             }
           }
-        },{
-          xtype: 'rallycheckboxfield',
-          fieldLabel: 'Follow Dashboard Timebox Scope',
-          name: 'useDashboardTimeboxScope'
         }];
+
+        if (this.getShowTimebox()){
+          fields.push({
+            xtype: 'rallycheckboxfield',
+            fieldLabel: 'Follow Dashboard Timebox Scope',
+            name: 'useDashboardTimeboxScope'
+          });
+        }
+        return fields;
     },
     getOptions: function() {
         return [
@@ -251,6 +270,37 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
 
     isExternal: function(){
         return typeof(this.getAppId()) == 'undefined';
-    }
+    },
+    _fetchDoneStates: function(){
+       var deferred = Ext.create('Deft.Deferred');
+       Rally.data.ModelFactory.getModel({
+           type: 'HierarchicalRequirement',
+           success: function(model) {
+               var field = model.getField('ScheduleState');
+               field.getAllowedValueStore().load({
+                   callback: function(records, operation, success) {
+                       if (success){
+                           var values = [];
+                           for (var i=records.length - 1; i > 0; i--){
+                               values.push(records[i].get('StringValue'));
+                               if (records[i].get('StringValue') == "Accepted"){
+                                   i = 0;
+                               }
+                           }
+                           deferred.resolve(values);
+                       } else {
+                           deferred.reject('Error loading ScheduleState values for User Story:  ' + operation.error.errors.join(','));
+                       }
+                   },
+                   scope: this
+               });
+           },
+           failure: function() {
+               var error = "Could not load schedule states";
+               deferred.reject(error);
+           }
+       });
+       return deferred.promise;
+   }
 
 });

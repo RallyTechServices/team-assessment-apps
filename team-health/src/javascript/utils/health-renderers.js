@@ -7,13 +7,15 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
   grey: '#e6e6e6',
 
   metrics: {
-     '__ratioInProgress': {green: [0.1], yellow: [0.25], reversed: true},
-     '__acceptedAfterSprintEndPoints': {green: [0.1], yellow: [0.25], reversed: true},
-     '__acceptedAtSprintEndPoints': {green: [0.9,1.1], yellow: [0.75,1.25]},
-     '__ratioEstimated': {green: [0.9,1.1], yellow: [0.75,1.25]},
-     '__plannedPoints': {green: [0.9,1.1], yellow: [0.75,1.25]},
-     '__addedScope': {green: [0.1], yellow: [0.25], reversed: true}
-
+     '__ratioInProgress': {green: 0, yellow: 0, reversed: true},
+     '__acceptedAfterSprintEnd': {green: 0, yellow: 0, reversed: true},
+     '__acceptedAtSprintEnd': {green: 0, yellow: 0},
+     '__ratioEstimated': {green: 0, yellow: 0},
+     '__planned': {green: 0, yellow: 0},
+     '__currentPlanned': {green: 0, yellow: 0},
+     '__velocity': {green: 0, yellow: 0},
+     '__addedScope': {green: 0, yellow: 0, reversed: true},
+     '__removedScope': {green: 0, yellow: 0, reversed: true}
   },
   getCellColor: function(val, metricName){
 
@@ -22,16 +24,20 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
        return Rally.technicalservices.util.HealthRenderers.grey;
     }
 
+    val = val * 100;
+
     if (range.reversed){
-       if (val <= range.green[0]){ return Rally.technicalservices.util.HealthRenderers.green; }
-       if (val <= range.yellow[0]){ return Rally.technicalservices.util.HealthRenderers.yellow; }
+       if (val <= range.green){ return Rally.technicalservices.util.HealthRenderers.green; }
+       if (val <= range.yellow){ return Rally.technicalservices.util.HealthRenderers.yellow; }
        return Rally.technicalservices.util.HealthRenderers.red;
     }
 
     var color = Rally.technicalservices.util.HealthRenderers.red;
-    if (val > range.green[0] && val < range.green[1]){
+    var upperGreen = 100 + (100 - range.green),
+    upperYellow = 100 + (100 - range.yellow);
+    if (val > range.green && val < upperGreen){
       color = Rally.technicalservices.util.HealthRenderers.green;
-    } else if (val > range.yellow[0] && val < range.yellow[1]) {
+    } else if (val > range.yellow && val < upperYellow) {
       color = Rally.technicalservices.util.HealthRenderers.yellow;
     }
     return color;
