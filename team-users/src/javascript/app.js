@@ -61,9 +61,12 @@ Ext.define("team-users", {
 
         this.down('rallygrid') && this.down('rallygrid').destroy();
         this.down('#userChart') && this.down('#userChart').destroy();
-
+        this.down('#growthChart') && this.down('#growthChart').destroy();
+        this.clearAppMessage();
+        
         if (!this.domainProjects || this.domainProjects.length === 0 ){
            Rally.ui.notify.Notifier.showWarning({message: "No projects selected."});
+           this.addAppMessage("No projects in the selected Team Domain.");
            return;
         }
 

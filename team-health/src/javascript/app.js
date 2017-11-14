@@ -122,8 +122,17 @@ Ext.define("team-health", {
   },
   _updateView: function(){
       this.logger.log('_updateView', this.getIterationsAgo());
+      this.down('rallygrid') && this.down('rallygrid').destroy();
+      this.clearAppMessage();
+
       if (this.getIterationsAgo() < 1 || this.getIterationsAgo() > this.maxIterationsAgo){
+        this.addAppMessage("Please select a valid # Iterations Ago.");
         return;
+      }
+
+      if (!this.domainProjects || this.domainProjects.length === 0){
+         this.addAppMessage("No projects in the selected domain.");
+         return;
       }
 
       this.setLoading('Fetching Iterations...');
@@ -468,7 +477,14 @@ Ext.define("team-health", {
               value: p.get('ObjectID')
            };
         });
-        filters = Rally.data.wsapi.Filter.or(filters);
+
+        if (filters.length > 1){
+          filters = Rally.data.wsapi.Filter.or(filters);
+        }
+        if (filters.length === 1){
+          filters = Ext.create('Rally.data.wsapi.Filter',filters[0]);
+        }
+
         filters = filters.and({
            property: 'EndDate',
            operator: '<',
