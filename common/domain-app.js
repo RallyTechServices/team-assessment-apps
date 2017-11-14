@@ -64,6 +64,18 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
          this._updateView();
        }
     },
+    addAppMessage: function(msg){
+       this.add({
+         xtype: 'container',
+         itemId: 'appMessage',
+         html: '<div class="no-data-container"><div class="secondary-message">' + msg + '</div></div>'
+       });
+    },
+    clearAppMessage: function(){
+       if (this.down('#appMessage')){
+         this.down('#appMessage').destroy();
+       }
+    },
     _initializeApp: function(args){
       this.logger.log('_initializeApp', args);
       this.removeAll();
@@ -119,7 +131,10 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
       this._showErrorNotification("Please implement the _export method.");
     },
     _updateDomainProjects: function(pdCombo){
-        var pdDomain = pdCombo && pdCombo.getValue();
+        var pdDomain = null;
+        if (pdCombo && pdCombo.getValue()){
+          pdDomain = pdCombo && pdCombo.getRecord().get('name');  
+        }
         this.logger.log('_updateView', pdDomain);
 
         if (pdDomain){
@@ -129,6 +144,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
              value: 'Open'
            },{
              property: this.getProjectDomainField(),
+             operator: 'contains',
              value: pdDomain
            }];
            this.logger.log('Project Filters', filters);

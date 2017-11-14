@@ -3,13 +3,13 @@
 <head>
     <title>Project Update App</title>
     <!--  (c) 2017 CA Technologies.  All Rights Reserved. -->
-    <!--  Build Date: Thu Jul 13 2017 13:40:58 GMT-0600 (MDT) -->
+    <!--  Build Date: Tue Nov 14 2017 08:10:27 GMT-0700 (MST) -->
     
     <script type="text/javascript">
-        var APP_BUILD_DATE = "Thu Jul 13 2017 13:40:58 GMT-0600 (MDT)";
+        var APP_BUILD_DATE = "Tue Nov 14 2017 08:10:27 GMT-0700 (MST)";
         var STORY    = "F319";
         var BUILDER  = "corkr03";
-        var CHECKSUM = 6622070704;
+        var CHECKSUM = 6622077675;
     </script>
     
     <script type="text/javascript" src="/apps/2.1/sdk.js"></script>

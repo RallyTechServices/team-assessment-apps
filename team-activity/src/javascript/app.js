@@ -19,6 +19,12 @@ Ext.define("team-activity", {
         if (this.down('rallygrid')){
            this.down('rallygrid').destroy();
         }
+        this.clearAppMessage();
+        
+        if (!this.domainProjects || this.domainProjects.length === 0){
+           this.addAppMessage("No projects in the selected Team Domain.");
+           return;
+        }
 
         this.setLoading(true);
         Deft.Promise.all([
@@ -162,6 +168,6 @@ Ext.define("team-activity", {
          minValue: 1,
          maxValue: 365
        });
-       return cols;  
+       return cols;
     }
 });
