@@ -100,7 +100,7 @@ Ext.define("project-update-app", {
       this.down('#gridBox').removeAll();
 
       var fields = this.down('fieldpickerbutton').getFields() || undefined;
-
+      
       this.down('#gridBox').add({
         xtype: 'rallygrid',
         store: Ext.create('Rally.data.wsapi.Store',{

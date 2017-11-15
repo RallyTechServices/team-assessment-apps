@@ -92,11 +92,17 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             labelAlign: 'right',
             model: 'Project',
             margin: 10,
+            multiSelect: true,
             field: this.getProjectDomainField(),
-            allowNoEntry: true,
-            noEntryText: '-- Follow Project Scope --'
+            allowClear: true
           });
-          pd.on('select', this._updateDomainProjects, this);
+
+          //Hack to remove the NoEntry option from the dropdown.  The alternative is to override the combobox
+          pd.on('ready', function(cb){
+            var idx = cb.getStore().findBy(function(r){return r.get('value') == ""});
+            cb.getStore().removeAt(idx);
+          },this);
+          pd.on('change', this._updateDomainProjects, this);
        }
 
        if (args){
@@ -130,24 +136,35 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
     _export: function(){
       this._showErrorNotification("Please implement the _export method.");
     },
-    _updateDomainProjects: function(pdCombo){
-        var pdDomain = null;
-        if (pdCombo && pdCombo.getValue()){
-          pdDomain = pdCombo && pdCombo.getRecord().get('name');  
-        }
-        this.logger.log('_updateView', pdDomain);
+    _updateDomainProjects: function(pdCombo, newValue, oldValue){
+        this.logger.log('_updateView', newValue, oldValue);
 
-        if (pdDomain){
+         var pdDomain = newValue || [];
+
+        if (pdDomain.length > 0){
            //get the teams
-           var filters = [{
+          var projectDomainField = this.getProjectDomainField(),
+             domainOperator = "contains"; //TODO if this is multi-select field, we need to use contains
+
+           var filters = _.map(pdDomain, function(d){
+                return {
+                   property: projectDomainField,
+                   operator: domainOperator,
+                   value: d
+                };
+           });
+
+           if (filters.length > 1){
+              filters = Rally.data.wsapi.Filter.or(filters);
+           } else {
+              filters = Ext.create('Rally.data.wsapi.Filter', filters[0]);
+           }
+           filters = filters.and({
              property: 'State',
              value: 'Open'
-           },{
-             property: this.getProjectDomainField(),
-             operator: 'contains',
-             value: pdDomain
-           }];
-           this.logger.log('Project Filters', filters);
+           });
+
+           this.logger.log('Project Filters', filters.toString());
            this._fetchWsapiRecords({
               model: 'Project',
               filters: filters,

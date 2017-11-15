@@ -10,6 +10,8 @@ If a domain field is configured in the App settings, these apps will provide a d
 domain field is configured, then the app will follow the project scope.  In this case, the app must be run at a parent level or higher and
 will not work at the project leaf node.  
 
+One or more domains may be selected for each app. 
+
 
 The "Project Update App" can be used to assign a domain in bulk.  This app is found here:
 https://github.com/RallyTechServices/team-assessment-apps/tree/master/project-bulk-update
