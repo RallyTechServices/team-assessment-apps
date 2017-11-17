@@ -81,23 +81,6 @@ Ext.define("team-health", {
   },
   _initializeApp: function(){
      var selectors = [{
-       xtype: 'rallycombobox',
-       itemId: 'teamType',
-       fieldLabel: 'Team Classification',
-       labelAlign: 'right',
-       store: Ext.create('Rally.data.custom.Store',{
-           data: [{name: 'Active', value: 'active'},{name: 'Inactive', value: 'inactive'},{name:'Program Level',value:'program'}],
-           fields: ['name','value']
-       }),
-       displayField: 'name',
-       valueField: 'value',
-       emptyText: 'All Teams',
-       margin: 10,
-       listeners: {
-          scope: this,
-          change: this._filterView
-       }
-     },{
        xtype:'rallynumberfield',
        itemId: 'iterationsAgo',
        fieldLabel: '# Iterations Ago',
@@ -139,10 +122,6 @@ Ext.define("team-health", {
   },
   getShowTimebox: function(){
     return false;
-  },
-  _filterView: function(cb){
-     var filter = cb.getValue();
-      this.logger.log('_filterView', filter);
   },
   _updateView: function(){
       this.logger.log('_updateView', this.getIterationsAgo());
