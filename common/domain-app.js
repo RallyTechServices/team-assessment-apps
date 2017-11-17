@@ -93,6 +93,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             model: 'Project',
             margin: 10,
             multiSelect: true,
+            emptyText: 'Project Scope',
             field: this.getProjectDomainField(),
             allowClear: true
           });
@@ -168,6 +169,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            this._fetchWsapiRecords({
               model: 'Project',
               filters: filters,
+              fetch: ['ObjectID','Name','Children'],
+              limit: 'Infinity'
            }).then({
              success: function(projects){
                 this.domainProjects = projects;
@@ -207,6 +210,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            this._fetchWsapiRecords({
               model: 'Project',
               filters: parentFilters,
+              fetch: ['ObjectID','Name','Children'],
+              limit: 'Infinity'
            }).then({
              success: function(projects){
                 this.domainProjects = projects;

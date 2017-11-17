@@ -2,6 +2,25 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     extend: 'Ext.data.Model',
     logger: new Rally.technicalservices.Logger(),
     fields: [{
+        name: 'project',
+        type: 'object'
+      },{
+        name: 'classification',
+        convert: function(value, record){
+
+           if (record.get('project') && record.get('project').Children && record.get('project').Children.Count > 0){
+              return 'Active, Program Level';
+           }
+
+           if (record.get('__activeWorkItems') > 0){
+               if (record.get('__iteration') && record.get('__plannedVelocity') > 0 && record.get('__planned') && record.get('__currentPlanned')){
+                    return "Active, Scrum";
+               }
+               return "Active, Other";
+           }
+           return 'Inactive';
+        }
+    },{
         name: 'team'
     },{
         name: '__iteration',
@@ -12,6 +31,36 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     },{
         name: '__artifacts',
         type: 'object'
+    },{
+        name: '__activeWorkItems',
+        convert: function(value, record){
+            if (record.get('__workItemData') && record.get('__workItemData').activeSnaps ){
+                return record.get('__workItemData').activeSnaps;
+            } else {
+                return '--';
+            }
+        }
+    },{
+      name: '__totalWorkItems',
+      convert: function(value, record){
+          if (record.get('__workItemData') && record.get('__workItemData').totalSnaps ){
+              return record.get('__workItemData').totalSnaps;
+          } else {
+              return '--';
+          }
+      }
+    },{
+      name: '__activeUsers',
+      convert: function(value, record){
+          if (record.get('__workItemData') && record.get('__workItemData').activeUsers ){
+              return record.get('__workItemData').activeUsers;
+          } else {
+              return '--';
+          }
+      }
+    },{
+       name: '__plannedLoad',
+       defaultValue: -1
     },{
         name: '__ratioEstimated',
         defaultValue: -1
@@ -41,10 +90,10 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         defaultValue: -1
     },{
         name: '__addedScope',
-        defaultValue: -1
+        defaultValue: 0
     },{
         name: '__removedScope',
-        defaultValue: -1
+        defaultValue: 0
 
     },{
          name: '__days',
@@ -61,6 +110,15 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     },{
         name: '__currentVelocity',
         defaultValue: -2
+    },{
+        name: '__workItemData',
+        type: 'object'
+    },{
+      name: '__plannedLoad',
+      defaultValue: -1
+    },{
+      name: '__netChurn',
+      defaultValue: -1
     }],
     calculate: function(usePoints, skipZeroForEstimation, doneStates) {
         this.resetDefaults();
@@ -72,6 +130,20 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         if (this.get('__artifacts')){
            this._mungeArtifacts(this.get('__artifacts'), usePoints);
         }
+
+        var netChurn = 0;
+        if (this.get('__planned') > 0){
+           var addedScope = this.get('__addedScope') || 0,
+               removedScope = this.get('__removedScope') || 0;
+           netChurn = Math.abs(addedScope - removedScope)/this.get('__planned');
+        }
+        this.set('__netChurn', netChurn);
+
+        if (this.get('__plannedVelocity') > 0){
+          var planningLoad = this.get('__planned')/this.get('__plannedVelocity');
+          this.set('__plannedLoad', planningLoad);
+        }
+
     },
     resetDefaults: function(){
         this.set('__ratioEstimated',-1);
@@ -174,6 +246,10 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
             planned_points = 0,
             end_velocity_count = 0,
             this_velocity_count = 0;
+
+        if (!this.get('__iteration')){
+           return;
+        }
 
         Ext.Array.each(records,function(artifact){
             var plan_estimate = artifact.PlanEstimate;

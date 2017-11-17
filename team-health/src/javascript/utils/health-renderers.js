@@ -1,9 +1,9 @@
 Ext.define('Rally.technicalservices.util.HealthRenderers',{
   singleton: true,
 
-  red: '#ff9999',
-  yellow: '#ffffcc',
-  green: '#ccffcc',
+  red: '#ff0000', //'#ff9999',
+  yellow: '#ffff00',
+  green: '#00ff00',
   grey: '#e6e6e6',
 
   metrics: {
@@ -15,7 +15,9 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
      '__currentPlanned': {green: 0, yellow: 0},
      '__velocity': {green: 0, yellow: 0},
      '__addedScope': {green: 0, yellow: 0, reversed: true},
-     '__removedScope': {green: 0, yellow: 0, reversed: true}
+     '__removedScope': {green: 0, yellow: 0, reversed: true},
+     '__netChurn': {green: 0, yellow: 0, reversed: true},
+     '__plannedLoad': {green: 0, yellow: 0}
   },
   getCellColor: function(val, metricName){
 

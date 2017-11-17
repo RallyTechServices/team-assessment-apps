@@ -13,7 +13,10 @@ Ext.define("team-health", {
        planned: '75,90',
        velocity: '75,90',
        addedScope: '10,25',
-       removedScope: '10,25'
+       removedScope: '10,25',
+       activeDays: 20,
+       netChurn: '15,20',
+       plannedLoad: '59,86'
     }
   },
 
@@ -78,6 +81,23 @@ Ext.define("team-health", {
   },
   _initializeApp: function(){
      var selectors = [{
+       xtype: 'rallycombobox',
+       itemId: 'teamType',
+       fieldLabel: 'Team Classification',
+       labelAlign: 'right',
+       store: Ext.create('Rally.data.custom.Store',{
+           data: [{name: 'Active', value: 'active'},{name: 'Inactive', value: 'inactive'},{name:'Program Level',value:'program'}],
+           fields: ['name','value']
+       }),
+       displayField: 'name',
+       valueField: 'value',
+       emptyText: 'All Teams',
+       margin: 10,
+       listeners: {
+          scope: this,
+          change: this._filterView
+       }
+     },{
        xtype:'rallynumberfield',
        itemId: 'iterationsAgo',
        fieldLabel: '# Iterations Ago',
@@ -120,6 +140,10 @@ Ext.define("team-health", {
   getShowTimebox: function(){
     return false;
   },
+  _filterView: function(cb){
+     var filter = cb.getValue();
+      this.logger.log('_filterView', filter);
+  },
   _updateView: function(){
       this.logger.log('_updateView', this.getIterationsAgo());
       this.down('rallygrid') && this.down('rallygrid').destroy();
@@ -145,6 +169,7 @@ Ext.define("team-health", {
     },
     _fetchData: function(iterations){
         this.logger.log('_fetchData', iterations);
+        var domainProjects = this.domainProjects;
 
         var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
         this.projectIterations = projectIterations;
@@ -154,7 +179,8 @@ Ext.define("team-health", {
           this._fetchArtifactData('HierarchicalRequirement', projectIterations),
           this._fetchArtifactData('Defect',projectIterations),
           this._fetchArtifactData('DefectSuite',projectIterations),
-          this._fetchArtifactData('TestSet',projectIterations)
+          this._fetchArtifactData('TestSet',projectIterations),
+          CATS.teamassessmentapps.utils.WorkItemUtility.fetchWorkItemInfo(domainProjects)
         ]).then({
             success: this._processData,
             failure: this._showErrorNotification,
@@ -164,6 +190,9 @@ Ext.define("team-health", {
     },
     getUsePoints: function(){
        return this.down('#metric').getValue() === 'points';
+    },
+    getActiveDays: function(){
+       return this.getSetting('activeDays') || 14;
     },
     getSkipZeroForEstimation: function(){
        return false;
@@ -188,23 +217,28 @@ Ext.define("team-health", {
     _processData: function(results){
        var icfd = results[0],
             artifacts = results[1].concat(results[2]).concat(results[3]).concat(results[4]);
-      this.logger.log('_processData', icfd, artifacts)
+      this.logger.log('_processData', icfd, artifacts, results[5]);
 
       var cfdHash = this._getHashByField(icfd, 'IterationObjectID'),
           artifactHash = this._getHashByField(artifacts, 'Project', 'Name');
 
        this.logger.log('_proecessData cfdHash', cfdHash);
        var data = [];
+       var workItemData = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(results[5], this.getActiveDays());
+       this.logger.log('workItemData', workItemData, this.getActiveDays());
        Ext.Array.each(this.domainProjects, function(p){
           var iteration = this.projectIterations[p.get('Name')],
               cfdRecords = iteration ? cfdHash[iteration.ObjectID] || [] : [],
               artifacts = artifactHash[p.get('Name')] || [],
               row = Ext.create('Rally.technicalservices.utils.DomainProjectHealthModel',{
-              __cfdRecords: cfdRecords,
-              __iteration: iteration,
-              __artifacts: artifacts,
-              team: p.get('Name')
-          });
+                __cfdRecords: cfdRecords,
+                __iteration: iteration,
+                __artifacts: artifacts,
+                project: p.getData(),
+                __workItemData: workItemData[p.get('Name')] || {},
+                team: p.get('Name')
+              });
+
           row.calculate(this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
           data.push(row);
        }, this);
@@ -240,7 +274,8 @@ Ext.define("team-health", {
         var store = Ext.create('Rally.data.custom.Store',{
             data: data,
             model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
-            pageSize: data.length
+            pageSize: data.length,
+            groupField: 'classification'
         });
 
         this.down('rallygrid') && this.down('rallygrid').destroy();
@@ -250,8 +285,12 @@ Ext.define("team-health", {
            columnCfgs: this._getColumnCfgs(this.getUsePoints()),
            showPagingToolbar: false,
            showRowActionsColumn: false,
-           enableBulkEdit: false
-        })
+           enableBulkEdit: false,
+           features: [{
+              ftype: 'grouping',
+              groupHeaderTpl: '{name}'
+           }]
+        });
 
     },
     _getColumnCfgs: function(usePoints){
@@ -263,23 +302,36 @@ Ext.define("team-health", {
            text: 'Team',
            flex: 1
         },{
-           dataIndex: '__iteration',
-           text: 'Iteration',
-           flex: 1,
-           renderer: function(v,m,r){
-              if (v && v.Name){
-                  return v.Name;
-              }
-              return '--';
-           }
-         }];
+            dataIndex: '__totalWorkItems',
+            text: 'Total Work Items',
+            align: 'center'
+         },{
+            dataIndex: '__activeWorkItems',
+            text: 'Active Work Items',
+            align: 'center'
+        //  },{
+        //     dataIndex: '__activeUsers',
+        //     text: 'Active Users',
+        //     align: 'center'
+         },{
+            dataIndex: '__iteration',
+            text: 'Iteration',
+            flex: 1,
+            renderer: function(v,m,r){
+               if (v && v.Name){
+                   return v.Name;
+               }
+               return '--';
+            }
+          }];
 
 
          if (this.getUsePoints()){
             cols.push({
                dataIndex: '__plannedVelocity',
                text: 'Iteration Planned Velocity',
-               align: 'center'
+               align: 'center',
+               renderer: this._plannedVelocityRenderer
              });
              cols.push({
                 dataIndex: '__ratioEstimated',
@@ -354,8 +406,22 @@ Ext.define("team-health", {
           text: Ext.String.format("Removed Scope ({0})", metric),
           align: 'center',
           renderer: this._scopeRenderer
+        },{
+          dataIndex: '__netChurn',
+          text: Ext.String.format("Net Churn ({0})", metric),
+          align: 'center',
+          renderer: this._percentRenderer
+        },{
+          dataIndex: '__plannedLoad',
+          text: 'Planning Load',
+          renderer: this._percentRenderer
         }]);
         return cols;
+    },
+    _plannedVelocityRenderer: function(v,m,r){
+      var color = v > 0 ? Rally.technicalservices.util.HealthRenderers.green : Rally.technicalservices.util.HealthRenderers.red;
+      m.style = 'padding-right:7px;text-align:center;background-color:'+color;
+      return v;
     },
     _percentRenderer: function(v,m,r, rowIdx, colIdx){
         var fieldName = this.columns[colIdx].dataIndex;
@@ -395,12 +461,16 @@ Ext.define("team-health", {
        }
 
        var store = this.down('rallygrid').getStore(),
-          cols = this._getColumnCfgs(this.getUsePoints()),
-          data = [_.pluck(cols,'text').join(',')];
+          cols = this._getColumnCfgs(this.getUsePoints());
+
+      cols.unshift({dataIndex: 'classification', text:'Classification'});
+      var data = [_.pluck(cols,'text').join(',')];
 
        store.each(function(r){
           var row = [];
+
           Ext.Array.each(cols, function(c){
+
             var val = r.get(c.dataIndex);
             if (Ext.isObject(val)){
                val = val._refObjectName || val.Name;
@@ -539,6 +609,14 @@ Ext.define("team-health", {
     getSettingsFields: function(){
        var fields = this.callParent(),
             settings = this.getSettings();
+
+            fields.push({
+              xtype: 'rallynumberfield',
+              name: 'activeDays',
+              fieldLabel: 'Active Days',
+              minValue: 1,
+              maxValue: 365
+            });
 
             var vals = this._getRangeFromSettings(settings, 'ratioEstimated');
             fields.push({
@@ -697,6 +775,46 @@ Ext.define("team-health", {
          listeners: {
             drag: function(sl){
                 sl.setFieldLabel(Ext.String.format("Removed Scope  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",sl.getValues()[0],sl.getValues()[1]));
+            }
+         }
+      });
+
+      var vals = this._getRangeFromSettings(settings, 'netChurn');
+      fields.push({
+         xtype:'multislider',
+         fieldLabel: Ext.String.format("Net Churn  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",vals[0],vals[1]),
+         labelCls: 'sliderlabel',
+         name: 'netChurn',
+         labelAlign: 'top',
+         width: 400,
+         margin: 25,
+         values: vals,
+         increment: 5,
+         minValue: 0,
+         maxValue: 100,
+         listeners: {
+            drag: function(sl){
+                sl.setFieldLabel(Ext.String.format("Net Churn  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",sl.getValues()[0],sl.getValues()[1]));
+            }
+         }
+      });
+
+      var vals = this._getRangeFromSettings(settings, 'plannedLoad');
+      fields.push({
+         xtype:'multislider',
+         fieldLabel: Ext.String.format("Planned Load  <span class=\"pct\">Red - {0}% - Yellow - {1}% - Green</span>",vals[0],vals[1]),
+         labelAlign: 'top',
+         labelCls: 'sliderlabel',
+         name: 'plannedLoad',
+         width: 400,
+         margin: 25,
+         values: vals,
+         increment: 5,
+         minValue: 0,
+         maxValue: 100,
+         listeners: {
+            drag: function(sl){
+                sl.setFieldLabel(Ext.String.format("Planned Load  <span class=\"pct\">Red - {0}% - Yellow - {1}% - Green</span>",sl.getValues()[0],sl.getValues()[1]));
             }
          }
       });
