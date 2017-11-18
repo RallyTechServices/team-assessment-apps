@@ -283,11 +283,21 @@ Ext.define("team-health", {
         },{
             dataIndex: '__totalWorkItems',
             text: 'Total Work Items',
-            align: 'center'
+            align: 'center',
+            sortable: false,
+            listeners: {
+                 scope: this,
+                 headerclick: this._showColumnDescription
+             }
          },{
             dataIndex: '__activeWorkItems',
             text: 'Active Work Items',
-            align: 'center'
+            sortable: false,
+            align: 'center',
+            listeners: {
+                 scope: this,
+                 headerclick: this._showColumnDescription
+             }
         //  },{
         //     dataIndex: '__activeUsers',
         //     text: 'Active Users',
@@ -295,13 +305,18 @@ Ext.define("team-health", {
          },{
             dataIndex: '__iteration',
             text: 'Iteration',
+            sortable: false,
             flex: 1,
             renderer: function(v,m,r){
                if (v && v.Name){
                    return v.Name;
                }
                return '--';
-            }
+            },
+            listeners: {
+                 scope: this,
+                 headerclick: this._showColumnDescription
+             }
           }];
 
 
@@ -309,93 +324,181 @@ Ext.define("team-health", {
             cols.push({
                dataIndex: '__plannedVelocity',
                text: 'Iteration Planned Velocity',
+               sortable: false,
                align: 'center',
-               renderer: this._plannedVelocityRenderer
+               renderer: this._plannedVelocityRenderer,
+               tooltip: 'The planned velocity set on the Iteration',
+               toolTip: 'The planned velocity set on the Iteration',
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
              });
              cols.push({
                 dataIndex: '__ratioEstimated',
+                sortable: false,
                 text: '% Items Estimated',
                 align: 'center',
-                renderer: this._percentRenderer
+                renderer: this._percentRenderer,
+                listeners: {
+                     scope: this,
+                     headerclick: this._showColumnDescription
+                 }
              });
              cols.push({
                dataIndex: '__planned',
                 text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
-                 align: 'center',
-               renderer: this._pointsPctRenderer
+                sortable: false,
+                align: 'center',
+               renderer: this._pointsPctRenderer,
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
              });
 
              cols.push({
                dataIndex: '__currentPlanned',
+               sortable: false,
                text: Ext.String.format("Current Planned ({0})", metric),
                align: 'center',
-               renderer: this._pointsPctRenderer
+               renderer: this._pointsPctRenderer,
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
             });
 
              cols.push({
+               sortable: false,
                dataIndex: '__velocity',
                text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
                align: 'center',
-               renderer: this._pointsPctRenderer
+               renderer: this._pointsPctRenderer,
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
              });
 
 
          } else {
              cols.push({
+               sortable: false,
                dataIndex: '__planned',
                text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
-               align: 'center'
+               align: 'center',
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
              });
 
              cols.push({
+               sortable: false,
                dataIndex: '__currentPlanned',
                text: Ext.String.format("Current Planned ({0})", metric),
-               align: 'center'
+               align: 'center',
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
             });
 
              cols.push({
+               sortable: false,
                dataIndex: '__velocity',
                text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
-               align: 'center'
+               align: 'center',
+               listeners: {
+                    scope: this,
+                    headerclick: this._showColumnDescription
+                }
              });
          }
 
          cols = cols.concat([{
-            dataIndex: '__ratioInProgress',
+           sortable: false,
+           dataIndex: '__ratioInProgress',
             text: Ext.String.format("% Average Daily in Progress ({0})", metric),
             align: 'center',
-            renderer: this._percentRenderer
+            renderer: this._percentRenderer,
+            listeners: {
+                 scope: this,
+                 headerclick: this._showColumnDescription
+             }
         },{
+          sortable: false,
           dataIndex: '__acceptedAtSprintEnd',
           text: Ext.String.format("% Accepted by Sprint End ({0})", metric),
           align: 'center',
-          renderer: this._percentRenderer
+          renderer: this._percentRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         },{
+          sortable: false,
           dataIndex: '__acceptedAfterSprintEnd',
           text: Ext.String.format("% Accepted after Sprint End ({0})", metric),
           align: 'center',
-          renderer: this._percentRenderer
+          renderer: this._percentRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         },{
+          sortable: false,
           dataIndex: '__addedScope',
           text: Ext.String.format("Added Scope ({0})", metric),
           align: 'center',
-          renderer: this._scopeRenderer
+          renderer: this._scopeRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         },{
+          sortable: false,
           dataIndex: '__removedScope',
           text: Ext.String.format("Removed Scope ({0})", metric),
           align: 'center',
-          renderer: this._scopeRenderer
+          renderer: this._scopeRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         },{
+          sortable: false,
           dataIndex: '__netChurn',
           text: Ext.String.format("Net Churn ({0})", metric),
           align: 'center',
-          renderer: this._percentRenderer
+          renderer: this._percentRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         },{
           dataIndex: '__plannedLoad',
+          sortable: false,
           text: 'Planning Load',
-          renderer: this._percentRenderer
+          renderer: this._percentRenderer,
+          listeners: {
+               scope: this,
+               headerclick: this._showColumnDescription
+           }
         }]);
         return cols;
+    },
+    _showColumnDescription: function(ct, column, evt, target_element, eOpts){
+  
+        var tool_tip = Rally.technicalservices.util.HealthRenderers.getTooltip(column.dataIndex);
+
+        Ext.create('Rally.ui.tooltip.ToolTip', {
+            target : target_element,
+            html: tool_tip,
+            autoShow: true
+        });
+
     },
     _plannedVelocityRenderer: function(v,m,r){
       var color = v > 0 ? Rally.technicalservices.util.HealthRenderers.green : Rally.technicalservices.util.HealthRenderers.red;
