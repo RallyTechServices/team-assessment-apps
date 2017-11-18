@@ -150,8 +150,13 @@ Ext.define("team-health", {
         this.logger.log('_fetchData', iterations);
         var domainProjects = this.domainProjects;
 
+        _.each(iterations, function(i){
+          console.log('i',i.get('Project').Name, i.get('Name'));
+        });
+
         var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
         this.projectIterations = projectIterations;
+        this.logger.log('projectIterations', this.projectIterations);
         this.setLoading('Fetching Iteration Data...');
         Deft.Promise.all([
           this._fetchIterationCumulativeData(projectIterations),
@@ -243,7 +248,8 @@ Ext.define("team-health", {
           columnCfgs: this._getColumnCfgs(usePoints),
           showPagingToolbar: false,
           showRowActionsColumn: false,
-          enableBulkEdit: false
+          enableBulkEdit: false,
+          autoScroll: true 
        })
 
     },
@@ -490,7 +496,7 @@ Ext.define("team-health", {
         return cols;
     },
     _showColumnDescription: function(ct, column, evt, target_element, eOpts){
-  
+
         var tool_tip = Rally.technicalservices.util.HealthRenderers.getTooltip(column.dataIndex);
 
         Ext.create('Rally.ui.tooltip.ToolTip', {
@@ -578,9 +584,11 @@ Ext.define("team-health", {
          }
          projectIterations[i.get('Project').Name].push(i.getData());
       });
+
       this.logger.log('_getProjectIterations', projectIterations);
+
       Ext.Object.each(projectIterations, function(projName, iterations){
-         if (iterations.length <= iterationsAgo){
+         if (iterations.length >= iterationsAgo){
             projectIterations[projName] = iterations[iterationsAgo-1];
          } else {
            projectIterations[projName] = null;
@@ -644,7 +652,7 @@ Ext.define("team-health", {
         });
 
         var pageSize = this.domainProjects.length * iterationsAgo;
-
+        this.logger.log('_fetchIterations', pageSize);
         return this._fetchWsapiRecords({
            model: 'Iteration',
            fetch: ['ObjectID','Name','StartDate','EndDate','Project','PlannedVelocity'],
