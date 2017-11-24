@@ -9,14 +9,13 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         convert: function(value, record){
 
            if (record.get('project') && record.get('project').Children && record.get('project').Children.Count > 0){
-              return 'Active, Program Level';
+              return 'Active - Program Level';
            }
-
-           if (record.get('__activeWorkItems') > 0){
+           if (record.get('__workItemData') && record.get('__workItemData').activeSnaps  > 0){
                if (record.get('__iteration') && record.get('__plannedVelocity') > 0 && record.get('__planned') && record.get('__currentPlanned')){
-                    return "Active, Scrum";
+                    return "Active - Scrum";
                }
-               return "Active, Other";
+               return "Active - Other";
            }
            return 'Inactive';
         }
