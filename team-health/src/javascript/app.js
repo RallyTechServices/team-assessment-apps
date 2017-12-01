@@ -285,12 +285,13 @@ Ext.define("team-health", {
         var cols = [{
            dataIndex: 'team',
            text: 'Team',
-           flex: 2
+           flex: 3
         },{
             dataIndex: '__totalWorkItems',
             text: 'Total Work Items',
             align: 'center',
             sortable: false,
+            flex: 1,
             listeners: {
                  scope: this,
                  //headerclick: this._showColumnDescription,
@@ -301,6 +302,7 @@ Ext.define("team-health", {
             text: 'Active Work Items',
             sortable: false,
             align: 'center',
+            flex: 1,
             listeners: {
                  scope: this,
                  //headerclick: this._showColumnDescription,
@@ -310,18 +312,13 @@ Ext.define("team-health", {
             dataIndex: '__iteration',
             text: 'Iteration',
             sortable: false,
-            flex: 2,
+            flex: 3,
             renderer: function(v,m,r){
                if (v && v.Name){
                    return v.Name;
                }
                return '--';
-            },
-            listeners: {
-                 scope: this,
-                 //headerclick: this._showColumnDescription,
-                 afterrender: this._initTooltip
-             }
+            }
           }];
 
 
@@ -331,6 +328,7 @@ Ext.define("team-health", {
                text: 'Iteration Planned Velocity',
                sortable: false,
                align: 'center',
+               flex: 1,
                renderer: this._plannedVelocityRenderer,
                toolTip: 'The planned velocity set on the Iteration',
                listeners: {
@@ -344,6 +342,7 @@ Ext.define("team-health", {
                 sortable: false,
                 text: '% Items Estimated',
                 align: 'center',
+                flex: 1,
                 renderer: this._percentRenderer,
                 listeners: {
                      scope: this,
@@ -356,7 +355,8 @@ Ext.define("team-health", {
                 text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
                 sortable: false,
                 align: 'center',
-               renderer: this._pointsPctRenderer,
+                flex: 1,
+                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
                     //headerclick: this._showColumnDescription,
@@ -369,6 +369,7 @@ Ext.define("team-health", {
                sortable: false,
                text: Ext.String.format("Current Planned ({0})", metric),
                align: 'center',
+               flex: 1,
                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
@@ -382,6 +383,7 @@ Ext.define("team-health", {
                dataIndex: '__velocity',
                text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
                align: 'center',
+               flex: 1,
                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
@@ -396,6 +398,7 @@ Ext.define("team-health", {
                sortable: false,
                dataIndex: '__planned',
                text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
+               flex: 1,
                align: 'center',
                listeners: {
                     scope: this,
@@ -408,6 +411,7 @@ Ext.define("team-health", {
                sortable: false,
                dataIndex: '__currentPlanned',
                text: Ext.String.format("Current Planned ({0})", metric),
+               flex: 1,
                align: 'center',
                listeners: {
                     scope: this,
@@ -420,6 +424,7 @@ Ext.define("team-health", {
                sortable: false,
                dataIndex: '__velocity',
                text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
+               flex: 1,
                align: 'center',
                listeners: {
                     scope: this,
@@ -434,6 +439,7 @@ Ext.define("team-health", {
            dataIndex: '__ratioInProgress',
             text: Ext.String.format("% Average Daily in Progress ({0})", metric),
             align: 'center',
+            flex: 1,
             renderer: this._percentRenderer,
             listeners: {
                  scope: this,
@@ -445,6 +451,7 @@ Ext.define("team-health", {
           dataIndex: '__acceptedAtSprintEnd',
           text: Ext.String.format("% Accepted by Sprint End ({0})", metric),
           align: 'center',
+          flex: 1,
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
@@ -456,6 +463,7 @@ Ext.define("team-health", {
           dataIndex: '__acceptedAfterSprintEnd',
           text: Ext.String.format("% Accepted after Sprint End ({0})", metric),
           align: 'center',
+          flex: 1,
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
@@ -467,6 +475,7 @@ Ext.define("team-health", {
           dataIndex: '__addedScope',
           text: Ext.String.format("Added Scope ({0})", metric),
           align: 'center',
+          flex: 1,
           renderer: this._scopeRenderer,
           listeners: {
                scope: this,
@@ -478,6 +487,7 @@ Ext.define("team-health", {
           dataIndex: '__removedScope',
           text: Ext.String.format("Removed Scope ({0})", metric),
           align: 'center',
+          flex: 1,
           renderer: this._scopeRenderer,
           listeners: {
                scope: this,
@@ -489,6 +499,7 @@ Ext.define("team-health", {
           dataIndex: '__netChurn',
           text: Ext.String.format("Net Churn ({0})", metric),
           align: 'center',
+          flex: 1,
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
@@ -499,6 +510,7 @@ Ext.define("team-health", {
           dataIndex: '__plannedLoad',
           sortable: false,
           text: 'Planning Load',
+          flex: 1,
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
@@ -514,7 +526,6 @@ Ext.define("team-health", {
       Ext.create('Rally.ui.tooltip.ToolTip', {
           target : column.getEl(), //target_element,
           html: tool_tip
-          //autoShow: true
       });
     },
     _plannedVelocityRenderer: function(v,m,r){
