@@ -293,7 +293,8 @@ Ext.define("team-health", {
             sortable: false,
             listeners: {
                  scope: this,
-                 headerclick: this._showColumnDescription
+                 //headerclick: this._showColumnDescription,
+                 afterrender: this._initTooltip
              }
          },{
             dataIndex: '__activeWorkItems',
@@ -302,7 +303,8 @@ Ext.define("team-health", {
             align: 'center',
             listeners: {
                  scope: this,
-                 headerclick: this._showColumnDescription
+                 //headerclick: this._showColumnDescription,
+                 afterrender: this._initTooltip
              }
          },{
             dataIndex: '__iteration',
@@ -317,7 +319,8 @@ Ext.define("team-health", {
             },
             listeners: {
                  scope: this,
-                 headerclick: this._showColumnDescription
+                 //headerclick: this._showColumnDescription,
+                 afterrender: this._initTooltip
              }
           }];
 
@@ -332,7 +335,8 @@ Ext.define("team-health", {
                toolTip: 'The planned velocity set on the Iteration',
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
              });
              cols.push({
@@ -343,7 +347,8 @@ Ext.define("team-health", {
                 renderer: this._percentRenderer,
                 listeners: {
                      scope: this,
-                     headerclick: this._showColumnDescription
+                     //headerclick: this._showColumnDescription,
+                     afterrender: this._initTooltip
                  }
              });
              cols.push({
@@ -354,7 +359,8 @@ Ext.define("team-health", {
                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
              });
 
@@ -366,7 +372,8 @@ Ext.define("team-health", {
                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
             });
 
@@ -378,7 +385,8 @@ Ext.define("team-health", {
                renderer: this._pointsPctRenderer,
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
              });
 
@@ -391,7 +399,8 @@ Ext.define("team-health", {
                align: 'center',
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
              });
 
@@ -402,7 +411,8 @@ Ext.define("team-health", {
                align: 'center',
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
             });
 
@@ -413,7 +423,8 @@ Ext.define("team-health", {
                align: 'center',
                listeners: {
                     scope: this,
-                    headerclick: this._showColumnDescription
+                    //headerclick: this._showColumnDescription,
+                    afterrender: this._initTooltip
                 }
              });
          }
@@ -426,7 +437,8 @@ Ext.define("team-health", {
             renderer: this._percentRenderer,
             listeners: {
                  scope: this,
-                 headerclick: this._showColumnDescription
+                 //headerclick: this._showColumnDescription,
+                 afterrender: this._initTooltip
              }
         },{
           sortable: false,
@@ -436,7 +448,8 @@ Ext.define("team-health", {
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         },{
           sortable: false,
@@ -446,7 +459,8 @@ Ext.define("team-health", {
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         },{
           sortable: false,
@@ -456,7 +470,8 @@ Ext.define("team-health", {
           renderer: this._scopeRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         },{
           sortable: false,
@@ -466,7 +481,8 @@ Ext.define("team-health", {
           renderer: this._scopeRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         },{
           sortable: false,
@@ -476,7 +492,8 @@ Ext.define("team-health", {
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         },{
           dataIndex: '__plannedLoad',
@@ -485,24 +502,24 @@ Ext.define("team-health", {
           renderer: this._percentRenderer,
           listeners: {
                scope: this,
-               headerclick: this._showColumnDescription
+               //headerclick: this._showColumnDescription,
+               afterrender: this._initTooltip
            }
         }]);
         return cols;
     },
-    _showColumnDescription: function(ct, column, evt, target_element, eOpts){
+    _initTooltip: function(column){
+      var tool_tip = Rally.technicalservices.util.HealthRenderers.getTooltip(column.dataIndex);
 
-        var tool_tip = Rally.technicalservices.util.HealthRenderers.getTooltip(column.dataIndex);
-
-        Ext.create('Rally.ui.tooltip.ToolTip', {
-            target : target_element,
-            html: tool_tip,
-            autoShow: true
-        });
-
+      Ext.create('Rally.ui.tooltip.ToolTip', {
+          target : column.getEl(), //target_element,
+          html: tool_tip
+          //autoShow: true
+      });
     },
     _plannedVelocityRenderer: function(v,m,r){
       var color = v > 0 ? Rally.technicalservices.util.HealthRenderers.green : Rally.technicalservices.util.HealthRenderers.red;
+      m.tdAttr = 'data-qtip="The planned velocity set on the Iteration"';
       m.style = 'padding-right:7px;text-align:center;background-color:'+color;
       return v;
     },
