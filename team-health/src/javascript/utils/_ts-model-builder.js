@@ -5,20 +5,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         name: 'project',
         type: 'object'
       },{
-        name: 'classification',
-        convert: function(value, record){
-
-           if (record.get('project') && record.get('project').Children && record.get('project').Children.Count > 0){
-              return 'Active - Program Level';
-           }
-           if (record.get('__workItemData') && record.get('__workItemData').activeSnaps  > 0){
-               if (record.get('__iteration') && record.get('__plannedVelocity') > 0 && record.get('__planned') && record.get('__currentPlanned')){
-                    return "Active - Scrum";
-               }
-               return "Active - Other";
-           }
-           return 'Inactive';
-        }
+        name: 'classification'
     },{
         name: 'team'
     },{
@@ -119,7 +106,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
       name: '__netChurn',
       defaultValue: -1
     }],
-    calculate: function(usePoints, skipZeroForEstimation, doneStates) {
+    calculate: function(usePoints, skipZeroForEstimation, doneStates, projects) {
         this.resetDefaults();
 
         if (this.get('__cfdRecords')) {
@@ -142,6 +129,21 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
           var planningLoad = this.get('__planned')/this.get('__plannedVelocity');
           this.set('__plannedLoad', planningLoad);
         }
+
+        var classification = 'Inactive';
+        if (this.get('project') && this.get('project').Summary && this.get('project').Summary.Children &&
+            this.get('project').Summary.Children.State &&  this.get('project').Summary.Children.State.Open > 0){
+           classification = 'Active -- Program Level';
+        } else {
+          if (this.get('__workItemData') && this.get('__workItemData').activeSnaps  > 0){
+              classification = "Active -- Other";
+              if (this.get('__iteration') && this.get('__plannedVelocity') > 0 && this.get('__planned') && this.get('__currentPlanned')){
+                   classification = "Active - Scrum";
+              }
+          }
+        }
+        this.set('classification', classification);
+
 
     },
     resetDefaults: function(){
