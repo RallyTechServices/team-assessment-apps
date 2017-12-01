@@ -173,7 +173,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
 
         Ext.Array.each(records, function(cf) {
             var card_date = cf.CreationDate; //cf.get('CreationDate');
-
+          
             if (this._isValidDate(card_date)){
                 var card_total = cf.CardEstimateTotal || 0,
                     card_state = cf.CardState,
@@ -230,9 +230,13 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
      */
     _isValidDate: function(card_date) {
         //NOTE: original app returns true of there is no start or end date in the iteration.
+        var startDate = this.get('__iteration').StartDate,
+            endDate = this.get('__iteration').EndDate;
+
         if (!card_date || ( card_date.getDay() > 0 && card_date.getDay() < 6 )){
-            if (this.get('EndDate') && this.get('StartDate')){
-                return (card_date <= this.get('EndDate') && card_date >= this.get('StartDate'));
+
+            if (endDate && startDate){
+                return (card_date <= endDate && card_date >= startDate);
             }
             return true;
         }

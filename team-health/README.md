@@ -19,7 +19,7 @@ The sum of Points (or Count) associated with the iteration currently.  This numb
 The actual sum of Points (or Count) accepted as of the last day of the iteration.  This number comes from the cumulative flow data from the last day of the iteration.   
 
 #### % Accepted by Sprint End
-The % of current points (or count) that were accepted before the end of the iteration.  This is calculated using the current wsapi data associated with the iteration.    
+The % of current points (or count) whose accepted date is before the end of the iteration.  This is calculated using the current the accepted date and the iteration end date.    
 
 #### % Accepted after Sprint End
 The % of current points (or count) that were accepted after the end of the iteration.  This is calculated using the current wsapi data associated with the iteration.    
