@@ -163,7 +163,7 @@ Ext.define('Rally.technicalservices.util.Health',{
     getPlanned: function(health_hash){
       var days = _.sortBy(_.keys(health_hash), function(date){return Date.parse(date)});
       var day_0 = _.values(health_hash[days[0]]);
-      console.log('day_0',health_hash[days[0]],day_0);
+    
       return Ext.Array.sum(day_0) || 0;
       return Ext.Array.sum(health_hash[days[0]]) || 0;
     },

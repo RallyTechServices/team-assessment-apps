@@ -150,9 +150,9 @@ Ext.define("team-health", {
         this.logger.log('_fetchData', iterations);
         var domainProjects = this.domainProjects;
 
-        _.each(iterations, function(i){
-          console.log('i',i.get('Project').Name, i.get('Name'));
-        });
+        // _.each(iterations, function(i){
+        //   console.log('i',i.get('Project').Name, i.get('Name'));
+        // });
 
         var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
         this.projectIterations = projectIterations;
@@ -242,15 +242,15 @@ Ext.define("team-health", {
           rec.calculate(this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
        }, this);
        this.down('rallygrid') && this.down('rallygrid').destroy();
-       this.add({
+       var grid = this.add({
           xtype: 'rallygrid',
           store: store,
           columnCfgs: this._getColumnCfgs(usePoints),
           showPagingToolbar: false,
           showRowActionsColumn: false,
           enableBulkEdit: false,
-          autoScroll: true 
-       })
+          autoScroll: true
+       });
 
     },
     _buildGrid: function(data){
@@ -285,7 +285,7 @@ Ext.define("team-health", {
         var cols = [{
            dataIndex: 'team',
            text: 'Team',
-           flex: 1
+           flex: 2
         },{
             dataIndex: '__totalWorkItems',
             text: 'Total Work Items',
@@ -304,15 +304,11 @@ Ext.define("team-health", {
                  scope: this,
                  headerclick: this._showColumnDescription
              }
-        //  },{
-        //     dataIndex: '__activeUsers',
-        //     text: 'Active Users',
-        //     align: 'center'
          },{
             dataIndex: '__iteration',
             text: 'Iteration',
             sortable: false,
-            flex: 1,
+            flex: 2,
             renderer: function(v,m,r){
                if (v && v.Name){
                    return v.Name;
@@ -333,7 +329,6 @@ Ext.define("team-health", {
                sortable: false,
                align: 'center',
                renderer: this._plannedVelocityRenderer,
-               tooltip: 'The planned velocity set on the Iteration',
                toolTip: 'The planned velocity set on the Iteration',
                listeners: {
                     scope: this,

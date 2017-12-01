@@ -169,7 +169,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            this._fetchWsapiRecords({
               model: 'Project',
               filters: filters,
-              fetch: ['ObjectID','Name','Children'],
+              fetch: ['ObjectID','Name','Children:summary[State]'],
               limit: 'Infinity'
            }).then({
              success: function(projects){
@@ -210,7 +210,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            this._fetchWsapiRecords({
               model: 'Project',
               filters: parentFilters,
-              fetch: ['ObjectID','Name','Children'],
+              fetch: ['ObjectID','Name','Children:summary[State]'],
               limit: 'Infinity'
            }).then({
              success: function(projects){
