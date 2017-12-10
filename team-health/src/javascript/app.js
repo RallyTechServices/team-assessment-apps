@@ -84,7 +84,65 @@ Ext.define("team-health", {
      Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0]
   },
   _initializeApp: function(){
+
      var selectors = [{
+       xtype: 'rallybutton',
+       text: 'Scrum',
+       itemId: 'classicficationBtn-scrum',
+       margin: '10 0 10 25',
+       pressed: true,
+       cls: 'primary rly-small',
+       toggleGroup: 'classificationView',
+       toggleHandler: this._tabChange,
+       style: {
+          borderBottomRightRadius: 0,
+          borderTopRightRadius: 0
+       },
+       scope: this
+     },{
+       xtype: 'rallybutton',
+       text: 'Other',
+       itemId: 'classicficationBtn-other',
+       margin: '10 0 10 0',
+       cls: 'secondary rly-small',
+       toggleGroup: 'classificationView',
+       style: {
+          borderBottomLeftRadius: 0,
+          borderTopLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderTopRightRadius: 0
+       },
+       toggleHandler: this._tabChange,
+       scope: this
+     },{
+       xtype: 'rallybutton',
+       text: 'Program',
+       itemId: 'classicficationBtn-program',
+       margin: '10 0 10 0',
+       cls: 'secondary rly-small',
+       toggleGroup: 'classificationView',
+       style: {
+          borderBottomLeftRadius: 0,
+          borderTopLeftRadius: 0,
+          borderBottomRightRadius: 0,
+          borderTopRightRadius: 0
+       },
+       toggleHandler: this._tabChange,
+       scope: this
+     },{
+       xtype: 'rallybutton',
+       text: 'Inactive',
+       itemId: 'classicficationBtn-inactive',
+       margin: '10 25 10 0',
+       cls: 'secondary rly-small',
+       toggleGroup: 'classificationView',
+       style: {
+          borderBottomLeftRadius: 0,
+          borderTopLeftRadius: 0
+       },
+       toggleHandler: this._tabChange,
+       scope: this
+     },{
        xtype:'rallynumberfield',
        itemId: 'iterationsAgo',
        fieldLabel: '# Iterations Ago',
@@ -116,10 +174,41 @@ Ext.define("team-health", {
      }];
 
      this.logger.log('selectors', selectors);
-
-
-
      this.callParent([selectors]);
+  },
+  _tabChange: function(btn, pressed){
+
+     var btns = this.query('rallybutton[toggleGroup=classificationView]');
+     this.logger.log('_tabChange', btns.length);
+     var selectedBtn = this.getSelectedButton();
+     Ext.Array.each(btns, function(b){
+
+        if (b.itemId === selectedBtn.itemId){
+           b.removeCls('secondary');
+           b.addCls('primary');
+
+        } else {
+          b.removeCls('primary');
+          b.addCls('secondary');
+        }
+     }, this);
+     this._displaySelectedView();
+  },
+  getSelectedButton: function(){
+    var btns = this.query('rallybutton[toggleGroup=classificationView]');
+    var selectedBtn = _.find(btns, function(b){ return b.pressed; });
+    return selectedBtn || null;
+
+  },
+  getSelectedTab: function(){
+      var btn = this.getSelectedButton();
+      if (btn){
+         var view = btn.itemId.split('-');
+         if (view.length === 2){
+            return view[1];
+         }
+      }
+      return null;
   },
   getIterationsAgo: function(){
      return this.down('#iterationsAgo') && this.down('#iterationsAgo').getValue() || 0;  //defaults to last iteration
@@ -159,10 +248,6 @@ Ext.define("team-health", {
     _fetchData: function(iterations){
         this.logger.log('_fetchData', iterations);
         var domainProjects = this.domainProjects;
-
-        // _.each(iterations, function(i){
-        //   console.log('i',i.get('Project').Name, i.get('Name'));
-        // });
 
         var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
         this.projectIterations = projectIterations;
@@ -211,6 +296,7 @@ Ext.define("team-health", {
     _processData: function(results){
        var icfd = results[0],
             artifacts = results[1].concat(results[2]).concat(results[3]).concat(results[4]);
+
       this.logger.log('_processData', icfd, artifacts, results[5]);
 
       var cfdHash = this._getHashByField(icfd, 'IterationObjectID'),
@@ -266,29 +352,60 @@ Ext.define("team-health", {
     _buildGrid: function(data){
         this.logger.log('_buildGrid', data);
 
-        var store = Ext.create('Rally.data.custom.Store',{
-            data: data,
-            model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
-            pageSize: data.length,
-            groupField: 'classification'
+        this.data = data;
+        this._displaySelectedView();
+        //var store = Ext.create('Rally.data.custom.Store',{
+        //     data: data,
+        //     model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
+        //     pageSize: data.length,
+        //     groupField: 'classification'
+        // });
+        //
+        // this.down('rallygrid') && this.down('rallygrid').destroy();
+        // this.add({
+        //    xtype: 'rallygrid',
+        //    store: store,
+        //    columnCfgs: this._getColumnCfgs(this.getUsePoints()),
+        //    showPagingToolbar: false,
+        //    showRowActionsColumn: false,
+        //    enableBulkEdit: false,
+        //    features: [{
+        //       ftype: 'grouping',
+        //       groupHeaderTpl: '{name}'
+        //    }]
+        // });
+    },
+    _displaySelectedView: function(){
+       this.logger.log('_displaySelectedView');
+       var data = this.data,
+           tab  = this.getSelectedTab();
+
+        if (!data || !tab || Ext.isEmpty(data)){
+           return;
+        }
+
+        var filteredData = Ext.Array.filter(data, function(d){
+            return d.get('classification') === tab;
         });
 
-        this.down('rallygrid') && this.down('rallygrid').destroy();
+        var store = Ext.create('Rally.data.custom.Store',{
+            data: filteredData,
+            model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
+            pageSize: filteredData.length
+        });
+
+         this.down('rallygrid') && this.down('rallygrid').destroy();
         this.add({
            xtype: 'rallygrid',
            store: store,
-           columnCfgs: this._getColumnCfgs(this.getUsePoints()),
+           columnCfgs: this._getColumnCfgs(this.getUsePoints(), tab),
            showPagingToolbar: false,
            showRowActionsColumn: false,
-           enableBulkEdit: false,
-           features: [{
-              ftype: 'grouping',
-              groupHeaderTpl: '{name}'
-           }]
+           enableBulkEdit: false
         });
 
     },
-    _getColumnCfgs: function(usePoints){
+    _getColumnCfgs: function(usePoints, tab){
 
         var metric = this.down('#metric').getRecord().get('name');
 
@@ -307,7 +424,10 @@ Ext.define("team-health", {
                  //headerclick: this._showColumnDescription,
                  afterrender: this._initTooltip
              }
-         },{
+         }];
+         if (tab === 'inactive') { return cols; }
+
+         cols.push({
             dataIndex: '__activeWorkItems',
             text: 'Active Work Items',
             sortable: false,
@@ -318,7 +438,11 @@ Ext.define("team-health", {
                  //headerclick: this._showColumnDescription,
                  afterrender: this._initTooltip
              }
-         },{
+         });
+
+         if (tab === 'other') { return cols; }
+
+        cols.push({
             dataIndex: '__iteration',
             text: 'Iteration',
             sortable: false,
@@ -329,7 +453,7 @@ Ext.define("team-health", {
                }
                return '--';
             }
-          }];
+          });
 
 
          if (this.getUsePoints()){

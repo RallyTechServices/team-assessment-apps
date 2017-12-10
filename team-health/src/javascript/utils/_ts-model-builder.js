@@ -130,15 +130,15 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
           this.set('__plannedLoad', planningLoad);
         }
 
-        var classification = 'Inactive';
+        var classification = 'inactive';
         if (this.get('project') && this.get('project').Summary && this.get('project').Summary.Children &&
             this.get('project').Summary.Children.State &&  this.get('project').Summary.Children.State.Open > 0){
-           classification = 'Active -- Program Level';
+           classification = 'program';
         } else {
           if (this.get('__workItemData') && this.get('__workItemData').activeSnaps  > 0){
-              classification = "Active -- Other";
+              classification = "other";
               if (this.get('__iteration') && this.get('__plannedVelocity') > 0 && this.get('__planned') && this.get('__currentPlanned')){
-                   classification = "Active - Scrum";
+                   classification = "scrum";
               }
           }
         }
@@ -173,7 +173,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
 
         Ext.Array.each(records, function(cf) {
             var card_date = cf.CreationDate; //cf.get('CreationDate');
-          
+
             if (this._isValidDate(card_date)){
                 var card_total = cf.CardEstimateTotal || 0,
                     card_state = cf.CardState,
