@@ -138,9 +138,10 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
       this._showErrorNotification("Please implement the _export method.");
     },
     _updateDomainProjects: function(pdCombo, newValue, oldValue){
-        this.logger.log('_updateView', newValue, oldValue);
+        this.logger.log('_updateDomainProjects newValue', newValue, oldValue);
 
         var pdDomain = newValue || [];
+        this.domainProjects = null;
         if (this.domainProjectsLoading){ return; }
         this.domainProjectsLoading = true;
 
