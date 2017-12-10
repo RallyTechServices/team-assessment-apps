@@ -35,7 +35,7 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
      '__addedScope': {green: 0, yellow: 0, reversed: true},
      '__removedScope': {green: 0, yellow: 0, reversed: true},
      '__netChurn': {green: 0, yellow: 0, reversed: true},
-     '__plannedLoad': {green: 0, yellow: 0}
+     '__plannedLoad': {green: 0, yellow: 0, x2: true}
   },
   getTooltip: function(metricName){
       return Rally.technicalservices.util.HealthRenderers.tooltips[metricName] || 'No tooltip';
@@ -58,6 +58,7 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
     var color = Rally.technicalservices.util.HealthRenderers.red;
     var upperGreen = 100 + (100 - range.green),
     upperYellow = 100 + (100 - range.yellow);
+
     if (val > range.green && val < upperGreen){
       color = Rally.technicalservices.util.HealthRenderers.green;
     } else if (val > range.yellow && val < upperYellow) {

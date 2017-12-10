@@ -16,7 +16,7 @@ Ext.define("team-health", {
        removedScope: '10,25',
        activeDays: 20,
        netChurn: '15,20',
-       plannedLoad: '59,86'
+       plannedLoad: '50,75'
     }
   },
 
@@ -78,6 +78,10 @@ Ext.define("team-health", {
      var range = this._getRangeFromSettings(settings, 'removedScope');
      Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.green = range[0];
      Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.yellow = range[1];
+
+     var range = this._getRangeFromSettings(settings, 'plannedLoad');
+     Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
+     Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0]
   },
   _initializeApp: function(){
      var selectors = [{
@@ -124,7 +128,7 @@ Ext.define("team-health", {
     return false;
   },
   _updateView: function(){
-      this.logger.log('_updateView', this.getIterationsAgo());
+      this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
       this.down('rallygrid') && this.down('rallygrid').destroy();
       this.clearAppMessage();
 
@@ -133,8 +137,14 @@ Ext.define("team-health", {
         return;
       }
 
-      if (!this.domainProjects || this.domainProjects.length === 0){
-         this.addAppMessage("No projects in the selected domain.");
+      if (!this.domainProjects){  // || this.domainProjects.length === 0){
+         this.addAppMessage("Project information loading...");
+         this._updateDomainProjects();
+         return;
+      }
+
+      if (this.domainProjects.length === 0){
+         this.addAppMessage("No projects found in the selected domain.");
          return;
       }
 
