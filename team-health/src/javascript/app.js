@@ -128,7 +128,7 @@ Ext.define("team-health", {
     return false;
   },
   _updateView: function(){
-      this.logger.log('_updateView', this.getIterationsAgo());
+      this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
       this.down('rallygrid') && this.down('rallygrid').destroy();
       this.clearAppMessage();
 
@@ -137,8 +137,14 @@ Ext.define("team-health", {
         return;
       }
 
-      if (!this.domainProjects || this.domainProjects.length === 0){
-         this.addAppMessage("No projects in the selected domain.");
+      if (!this.domainProjects){  // || this.domainProjects.length === 0){
+         this.addAppMessage("Project information loading...");
+         this._updateDomainProjects();
+         return;
+      }
+
+      if (this.domainProjects.length === 0){
+         this.addAppMessage("No projects found in the selected domain.");
          return;
       }
 

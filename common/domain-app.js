@@ -140,10 +140,13 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
     _updateDomainProjects: function(pdCombo, newValue, oldValue){
         this.logger.log('_updateView', newValue, oldValue);
 
-         var pdDomain = newValue || [];
+        var pdDomain = newValue || [];
+        if (this.domainProjectsLoading){ return; }
+        this.domainProjectsLoading = true;
 
         if (pdDomain.length > 0){
            //get the teams
+           this.logger.log('_updateDomainProjects', pdDomain.length);
           var projectDomainField = this.getProjectDomainField(),
              domainOperator = "contains"; //TODO if this is multi-select field, we need to use contains
 
@@ -178,11 +181,13 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
              },
              failure: this._showErrorNotification,
              scope: this
-           });
+           }).always(function(){
+              this.domainProjectsLoading = false;
+           },this);
         } else {
            //follow the project scope
            this.domainProjects = null;
-
+           this.logger.log('_updateDomainProjects no domain selected');
            var parentFilters = [],
               properties = ['Parent'],
               projectRef = this.getContext().getProject()._ref;
@@ -219,7 +224,9 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
              },
              failure: this._showErrorNotification,
              scope: this
-           });
+           }).always(function(){
+              this.domainProjectsLoading = false;
+           },this);
         }
     },
     _updateView: function(){

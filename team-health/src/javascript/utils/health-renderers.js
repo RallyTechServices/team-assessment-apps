@@ -54,9 +54,7 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
        if (val <= range.yellow){ return Rally.technicalservices.util.HealthRenderers.yellow; }
        return Rally.technicalservices.util.HealthRenderers.red;
     }
-    if (metricName == "__plannedLoad"){
-       console.log('plannedLoad', val, range.green, upperGreen, range.yellow, upperYellow)
-    }
+
     var color = Rally.technicalservices.util.HealthRenderers.red;
     var upperGreen = 100 + (100 - range.green),
     upperYellow = 100 + (100 - range.yellow);
