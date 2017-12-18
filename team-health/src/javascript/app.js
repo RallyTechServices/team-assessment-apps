@@ -181,6 +181,7 @@ Ext.define("team-health", {
 
     this.logger.log('_fetchClassificationData', projectIterations,domainProjects);
 
+    this.setLoading('Fetching Team data...');
     CATS.teamassessmentapps.utils.WorkItemUtility.fetchWorkItemInfo(domainProjects).then({
       success: this._initializeData,
       failure: this._showErrorNotification,
@@ -190,6 +191,7 @@ Ext.define("team-health", {
   },
 
     _initializeData: function(workItemData){
+      this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
       var data = [];
       var workItemInfo = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(workItemData, this.getActiveDays());
       this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
@@ -241,15 +243,26 @@ Ext.define("team-health", {
       var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
       this.projectIterations = projectIterations;
 
+      //Now, only get data for the iterations in teams that we classified as scrum
+      var scrumTeams = _.filter(this.data, function(d){
+         return d.get('classification') === 'scrum';
+      }).map(function(d){
+         return d.get('project').ObjectID;
+      });
+
+      var relvantIterations = _.filter(projectIterations, function(i){
+         return Ext.Array.contains(scrumTeams, i.Project.ObjectID);
+      });
+
       this.logger.log('projectIterations', this.projectIterations);
 
       this.setLoading('Fetching Iteration Data...');
       Deft.Promise.all([
-        this._fetchIterationCumulativeData(projectIterations),
-        this._fetchArtifactData('HierarchicalRequirement', projectIterations),
-        this._fetchArtifactData('Defect',projectIterations),
-        this._fetchArtifactData('DefectSuite',projectIterations),
-        this._fetchArtifactData('TestSet',projectIterations)
+        this._fetchIterationCumulativeData(relvantIterations),
+        this._fetchArtifactData('HierarchicalRequirement', relvantIterations),
+        this._fetchArtifactData('Defect',relvantIterations),
+        this._fetchArtifactData('DefectSuite',relvantIterations),
+        this._fetchArtifactData('TestSet',relvantIterations)
       ]).then({
           success: this._processScrumData,
           failure: this._showErrorNotification,
@@ -271,11 +284,15 @@ Ext.define("team-health", {
       Ext.Array.each(this.data, function(d){
 
         var projectName = d.get('team'),
+            isScrum = d.get('classification') === 'scrum',
             iteration = this.projectIterations[projectName],
             cfdRecords = iteration ? cfdHash[iteration.ObjectID] || [] : [],
             artifacts = artifactHash[projectName] || [];
 
-         d.updateScrumData(iteration, cfdRecords, artifacts, this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
+         if (isScrum){
+           d.updateScrumData(iteration, cfdRecords, artifacts, this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
+         }
+
 
       }, this);
       this._addGrid(this.data);
@@ -287,6 +304,8 @@ Ext.define("team-health", {
        var tab  = this.getSelectedTab(),
            isScrum = tab === 'scrum',
            isOther = tab === 'other';
+
+      this.logger.log('_displaySelectedView', tab, this.data);
 
       this.clearAppMessage();
       if (this.down('#teamGrid')){
