@@ -190,7 +190,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     }],
     initialize: function(){
       this.resetDefaults();
-      console.log('workitemdata', this.get('__workItemData'));
+
       var classification = 'inactive';
       if (this.get('project') && this.get('project').Summary && this.get('project').Summary.Children &&
           this.get('project').Summary.Children.State &&  this.get('project').Summary.Children.State.Open > 0){
