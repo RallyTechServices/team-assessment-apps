@@ -124,13 +124,22 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            tbStart.on('select', this._updateView, this);
        }
 
-         var bt = selectorBox.add({
+         // selectorBox.add({
+         //   xtype: 'rallybutton',
+         //   text: 'Update',
+         //   margin: 10,
+         //   handler: this._updateView,
+         //   scope: this
+         // });
+
+         selectorBox.add({
            xtype: 'rallybutton',
            iconCls: 'icon-export',
            margin: 10,
-           cls: 'secondary rly-small'
+           cls: 'secondary rly-small',
+           handler: this._export,
+           scope: this
          });
-         bt.on('click', this._export, this);
 
         this._updateDomainProjects();
     },

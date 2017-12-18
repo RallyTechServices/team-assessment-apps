@@ -12,15 +12,22 @@ Ext.define('CATS.teamassessmentapps.utils.WorkItemUtility',{
                  totalSnaps: 0,
                  activeSnaps: 0,
                  activeUsers: [],
-                 workItemCreation: []
+                 snaps: [], //activeSnaps
+                 workItemCreation: [],
+                 latestUpdate: new Date(1900,01,01)
               };
            }
            var day = Rally.util.DateTime.format(Rally.util.DateTime.fromIsoString(snap.CreationDate),'Y-m-d');
            snaps[prj].workItemCreation.push(day);
 
+
            snaps[prj].totalSnaps++;
            var dt = Rally.util.DateTime.fromIsoString(snap._ValidFrom);
+           if (dt > snaps[prj].latestUpdate){
+               snaps[prj].latestUpdate = dt;
+           }
            if (dt >= activeDate){
+             snaps[prj].snaps.push(snap);
              snaps[prj].activeSnaps++;
              snaps[prj].activeUsers.push(snap._User)
            }
@@ -58,7 +65,7 @@ Ext.define('CATS.teamassessmentapps.utils.WorkItemUtility',{
              Project: {$in: project_oids},
              __At: "current"
           },
-          fetch: ['ObjectID','Project','_TypeHierarchy','_ValidFrom','_User','CreationDate'],
+          fetch: ['ObjectID','Project','_TypeHierarchy','_ValidFrom','_User','CreationDate','Iteration'],
           hydrate: ['_TypeHierarchy','Project'],
           removeUnauthorizedSnapshots: true,
           limit: 'Infinity',

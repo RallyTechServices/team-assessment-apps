@@ -4,7 +4,28 @@
 
 ![screenshot](./images/screenshot.png "This is an example")
 
-For all the projects in the selected "Domain" (or project scope if no domain field is configured), this app will show the following basic health indicators:
+For all the projects in the selected "Domain" (or project scope if no domain field is configured), this app will classify the teams according to the following criteria:
+
+##### Scrum
+* Leaf node teams (Team has no open children teams)
+* Has at least 1 active work item
+* Iterations exist for the team
+* Iteration has a planned velocity set
+* At least 1 story is scheduled into the iteration
+
+##### Other
+* Any leaf node teams with active work items that do not meet the criteria for a scrum team
+
+##### Program
+* Teams are at the program level and have open child teams.
+
+##### Inactive
+* No work items have been modified within the active days range (Active Days is set in the app settings)
+
+
+The app will show the following basic health indicators for each classification:
+
+### Scrum
 
 #### Iteration Planned Velocity
 The planned velocity set on the Iteration
