@@ -34,62 +34,14 @@ Ext.define("team-health", {
        scope: this
     });
   },
-  _getRangeFromSettings: function(settings, settingName){
-      var val = settings[settingName];
 
-      if (!Ext.isArray(val)){
-        val = val.split(',');
-      }
-      this.logger.log('_getRangeFromSettings', val);
-      return Ext.Array.map(val, function(v){ return Number(v); })
-  },
-  _setThreshholds: function(settings){
-
-     var range = this._getRangeFromSettings(settings, 'ratioInProgress');
-     Rally.technicalservices.util.HealthRenderers.metrics.__ratioInProgress.green = range[0];
-     Rally.technicalservices.util.HealthRenderers.metrics.__ratioInProgress.yellow = range[1];
-
-     var range = this._getRangeFromSettings(settings, 'acceptedAfterSprintEnd');
-     Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAfterSprintEnd.green = range[0];
-     Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAfterSprintEnd.yellow = range[1];
-
-     var range = this._getRangeFromSettings(settings, 'acceptedAtSprintEnd');
-     Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAtSprintEnd.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAtSprintEnd.yellow = range[0];
-
-     var range = this._getRangeFromSettings(settings, 'ratioEstimated');
-     Rally.technicalservices.util.HealthRenderers.metrics.__ratioEstimated.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__ratioEstimated.yellow = range[0];
-
-     var range = this._getRangeFromSettings(settings, 'planned');
-     Rally.technicalservices.util.HealthRenderers.metrics.__planned.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__planned.yellow = range[0];
-     Rally.technicalservices.util.HealthRenderers.metrics.__currentPlanned.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__currentPlanned.yellow = range[0];
-
-     var range = this._getRangeFromSettings(settings, 'velocity');
-     Rally.technicalservices.util.HealthRenderers.metrics.__velocity.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__velocity.yellow = range[0];
-
-     var range = this._getRangeFromSettings(settings, 'addedScope');
-     Rally.technicalservices.util.HealthRenderers.metrics.__addedScope.green = range[0];
-     Rally.technicalservices.util.HealthRenderers.metrics.__addedScope.yellow = range[1];
-
-     var range = this._getRangeFromSettings(settings, 'removedScope');
-     Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.green = range[0];
-     Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.yellow = range[1];
-
-     var range = this._getRangeFromSettings(settings, 'plannedLoad');
-     Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
-     Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0]
-  },
   _initializeApp: function(){
 
      var selectors = [{
        xtype: 'rallybutton',
        text: 'Scrum',
        itemId: 'classicficationBtn-scrum',
-       margin: '10 0 10 25',
+       margin: '10 -1 10 25',
        pressed: true,
        cls: 'primary rly-small',
        toggleGroup: 'classificationView',
@@ -103,7 +55,7 @@ Ext.define("team-health", {
        xtype: 'rallybutton',
        text: 'Other',
        itemId: 'classicficationBtn-other',
-       margin: '10 0 10 0',
+       margin: '10 -1 10 -1',
        cls: 'secondary rly-small',
        toggleGroup: 'classificationView',
        style: {
@@ -118,7 +70,7 @@ Ext.define("team-health", {
        xtype: 'rallybutton',
        text: 'Program',
        itemId: 'classicficationBtn-program',
-       margin: '10 0 10 0',
+       margin: '10 -1 10 -1',
        cls: 'secondary rly-small',
        toggleGroup: 'classificationView',
        style: {
@@ -133,7 +85,7 @@ Ext.define("team-health", {
        xtype: 'rallybutton',
        text: 'Inactive',
        itemId: 'classicficationBtn-inactive',
-       margin: '10 25 10 0',
+       margin: '10 25 10 -1',
        cls: 'secondary rly-small',
        toggleGroup: 'classificationView',
        style: {
@@ -153,7 +105,7 @@ Ext.define("team-health", {
        emptyText: 'Last Iteration',
        listeners: {
           scope: this,
-          change: this._updateView
+          change: this._updateIterationsAgo
        }
      },{
         xtype: 'rallycombobox',
@@ -169,7 +121,7 @@ Ext.define("team-health", {
         margin: 10,
         listeners: {
           scope: this,
-          select: this._updateGrid
+          select: this._updateUsePoints
         }
      }];
 
@@ -181,9 +133,11 @@ Ext.define("team-health", {
      var btns = this.query('rallybutton[toggleGroup=classificationView]');
      this.logger.log('_tabChange', btns.length);
      var selectedBtn = this.getSelectedButton();
+     if (!selectedBtn){ return; }
+
      Ext.Array.each(btns, function(b){
 
-        if (b.itemId === selectedBtn.itemId){
+        if (b && b.itemId === selectedBtn.itemId){
            b.removeCls('secondary');
            b.addCls('primary');
 
@@ -194,544 +148,206 @@ Ext.define("team-health", {
      }, this);
      this._displaySelectedView();
   },
-  getSelectedButton: function(){
-    var btns = this.query('rallybutton[toggleGroup=classificationView]');
-    var selectedBtn = _.find(btns, function(b){ return b.pressed; });
-    return selectedBtn || null;
 
-  },
-  getSelectedTab: function(){
-      var btn = this.getSelectedButton();
-      if (btn){
-         var view = btn.itemId.split('-');
-         if (view.length === 2){
-            return view[1];
-         }
-      }
-      return null;
-  },
-  getIterationsAgo: function(){
-     return this.down('#iterationsAgo') && this.down('#iterationsAgo').getValue() || 0;  //defaults to last iteration
-  },
-  getShowTimebox: function(){
-    return false;
-  },
   _updateView: function(){
-      this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
-      this.down('rallygrid') && this.down('rallygrid').destroy();
-      this.clearAppMessage();
 
-      if (this.getIterationsAgo() < 1 || this.getIterationsAgo() > this.maxIterationsAgo){
-        this.addAppMessage("Please select a valid # Iterations Ago.");
-        return;
-      }
+    this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
+    this.down('#teamGrid') && this.down('#teamGrid').destroy();
+    this.clearAppMessage();
 
-      if (!this.domainProjects){  // || this.domainProjects.length === 0){
-         this.addAppMessage("Project information loading...");
-         this._updateDomainProjects();
-         return;
-      }
+    if (!this.domainProjects){  // || this.domainProjects.length === 0){
+       this.addAppMessage("Project information loading...");
+       this._updateDomainProjects();
+       return;
+    }
 
-      if (this.domainProjects.length === 0){
-         this.addAppMessage("No projects found in the selected domain.");
-         return;
-      }
+    if (this.domainProjects.length === 0){
+       this.addAppMessage("No projects found in the selected domain.");
+       return;
+    }
+
+    //For the first load, we will just load information from the most recent iteration so that we can classify teams
+    this._fetchIterations().then({
+      success: this._fetchClassificationData,
+      failure: this._showErrorNotification,
+      scope: this
+    });
+
+  },
+  _fetchClassificationData: function(iterations){
+    var projectIterations = this._getProjectIterations(iterations, 1);
+    this.projectIterations = projectIterations;
+    var domainProjects = this.domainProjects;
+
+    this.logger.log('_fetchClassificationData', projectIterations,domainProjects);
+
+    CATS.teamassessmentapps.utils.WorkItemUtility.fetchWorkItemInfo(domainProjects).then({
+      success: this._initializeData,
+      failure: this._showErrorNotification,
+      scope: this
+    }).always(function(){ this.setLoading(false); },this);
+
+  },
+
+    _initializeData: function(workItemData){
+      var data = [];
+      var workItemInfo = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(workItemData, this.getActiveDays());
+      this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
+      Ext.Array.each(this.domainProjects, function(p){
+         var iteration = this.projectIterations[p.get('Name')],
+             row = Ext.create('Rally.technicalservices.utils.DomainProjectHealthModel',{
+               __iteration: iteration,
+               __workItemData: workItemInfo[p.get('Name')] || {},
+               project: p.getData(),
+               team: p.get('Name')
+             });
+
+         row.initialize()
+         data.push(row);
+      }, this);
+      this.data = data ;
+
+      this._displaySelectedView();
+
+    },
+
+    _updateUsePoints: function(){
+       var usePoints = this.getUsePoints();
+       this.logger.log('_updateUsePoints', usePoints);
+
+       Ext.Array.each(this.data, function(d){
+          d.recalculate(this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
+       }, this);
+
+      this._addGrid(this.data);
+
+    },
+    _updateIterationsAgo: function(){
+      var iterationsAgo = this.getIterationsAgo();
+      this.logger.log('_updateIterationsAgo', iterationsAgo);
 
       this.setLoading('Fetching Iterations...');
       this._fetchIterations(this.getIterationsAgo()).then({
-        success: this._fetchData,
+        success: this._fetchScrumData,
         failure: this._showErrorNotification,
         scope: this
       });
+    },
+    /**
+      BEGIN Scrum data collection
+    */
+    _fetchScrumData: function(iterations){
+
+      var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
+      this.projectIterations = projectIterations;
+
+      this.logger.log('projectIterations', this.projectIterations);
+
+      this.setLoading('Fetching Iteration Data...');
+      Deft.Promise.all([
+        this._fetchIterationCumulativeData(projectIterations),
+        this._fetchArtifactData('HierarchicalRequirement', projectIterations),
+        this._fetchArtifactData('Defect',projectIterations),
+        this._fetchArtifactData('DefectSuite',projectIterations),
+        this._fetchArtifactData('TestSet',projectIterations)
+      ]).then({
+          success: this._processScrumData,
+          failure: this._showErrorNotification,
+          scope: this
+      }).always(function(){ this.setLoading(false); },this);
+    },
+    _processScrumData: function(results){
+
+      var icfd = results[0],
+           artifacts = results[1].concat(results[2]).concat(results[3]).concat(results[4]);
+
+     this.logger.log('_processScrumData', icfd, artifacts);
+
+     var cfdHash = this._getHashByField(icfd, 'IterationObjectID'),
+         artifactHash = this._getHashByField(artifacts, 'Project', 'Name');
+
+      this.logger.log('_proecessData cfdHash', cfdHash);
+
+      Ext.Array.each(this.data, function(d){
+
+        var projectName = d.get('team'),
+            iteration = this.projectIterations[projectName],
+            cfdRecords = iteration ? cfdHash[iteration.ObjectID] || [] : [],
+            artifacts = artifactHash[projectName] || [];
+
+         d.updateScrumData(iteration, cfdRecords, artifacts, this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
+
+      }, this);
+      this._addGrid(this.data);
 
     },
-    _fetchData: function(iterations){
-        this.logger.log('_fetchData', iterations);
-        var domainProjects = this.domainProjects;
+    // END SCRUM DATA PROCESSING
 
-        var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
-        this.projectIterations = projectIterations;
-        this.logger.log('projectIterations', this.projectIterations);
-        this.setLoading('Fetching Iteration Data...');
-        Deft.Promise.all([
-          this._fetchIterationCumulativeData(projectIterations),
-          this._fetchArtifactData('HierarchicalRequirement', projectIterations),
-          this._fetchArtifactData('Defect',projectIterations),
-          this._fetchArtifactData('DefectSuite',projectIterations),
-          this._fetchArtifactData('TestSet',projectIterations),
-          CATS.teamassessmentapps.utils.WorkItemUtility.fetchWorkItemInfo(domainProjects)
-        ]).then({
-            success: this._processData,
-            failure: this._showErrorNotification,
-            scope: this
-        }).always(function(){ this.setLoading(false); },this);
-
-    },
-    getUsePoints: function(){
-       return this.down('#metric').getValue() === 'points';
-    },
-    getActiveDays: function(){
-       return this.getSetting('activeDays') || 14;
-    },
-    getSkipZeroForEstimation: function(){
-       return false;
-    },
-    getDoneStates: function(){
-      return this.doneStates;
-    },
-    _getHashByField: function(records, fieldName, attribute){
-      var hash = {};
-      for (var i=0; i<records.length; i++){
-
-          var r = records[i].getData();
-          var key = attribute ? r[fieldName][attribute] : r[fieldName];
-
-          if (!hash[key]){
-             hash[key] = [];
-          }
-          hash[key].push(r);
-      }
-      return hash;
-    },
-    _processData: function(results){
-       var icfd = results[0],
-            artifacts = results[1].concat(results[2]).concat(results[3]).concat(results[4]);
-
-      this.logger.log('_processData', icfd, artifacts, results[5]);
-
-      var cfdHash = this._getHashByField(icfd, 'IterationObjectID'),
-          artifactHash = this._getHashByField(artifacts, 'Project', 'Name');
-
-       this.logger.log('_proecessData cfdHash', cfdHash);
-       var data = [];
-       var workItemData = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(results[5], this.getActiveDays());
-       this.logger.log('workItemData', workItemData, this.getActiveDays());
-       Ext.Array.each(this.domainProjects, function(p){
-          var iteration = this.projectIterations[p.get('Name')],
-              cfdRecords = iteration ? cfdHash[iteration.ObjectID] || [] : [],
-              artifacts = artifactHash[p.get('Name')] || [],
-              row = Ext.create('Rally.technicalservices.utils.DomainProjectHealthModel',{
-                __cfdRecords: cfdRecords,
-                __iteration: iteration,
-                __artifacts: artifacts,
-                project: p.getData(),
-                __workItemData: workItemData[p.get('Name')] || {},
-                team: p.get('Name')
-              });
-
-          row.calculate(this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
-          data.push(row);
-       }, this);
-
-       this._buildGrid(data);
-
-    },
-    _updateGrid: function(){
-       var usePoints = this.getUsePoints();
-       this.logger.log('_updateGrid', usePoints);
-
-       if (!this.down('rallygrid')){ return; }
-
-       var store = this.down('rallygrid').getStore();
-
-       store.each(function(rec){
-          rec.calculate(this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
-       }, this);
-       this.down('rallygrid') && this.down('rallygrid').destroy();
-       var grid = this.add({
-          xtype: 'rallygrid',
-          store: store,
-          columnCfgs: this._getColumnCfgs(usePoints),
-          showPagingToolbar: false,
-          showRowActionsColumn: false,
-          enableBulkEdit: false,
-          autoScroll: true
-       });
-
-    },
-    _buildGrid: function(data){
-        this.logger.log('_buildGrid', data);
-
-        this.data = data;
-        this._displaySelectedView();
-        //var store = Ext.create('Rally.data.custom.Store',{
-        //     data: data,
-        //     model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
-        //     pageSize: data.length,
-        //     groupField: 'classification'
-        // });
-        //
-        // this.down('rallygrid') && this.down('rallygrid').destroy();
-        // this.add({
-        //    xtype: 'rallygrid',
-        //    store: store,
-        //    columnCfgs: this._getColumnCfgs(this.getUsePoints()),
-        //    showPagingToolbar: false,
-        //    showRowActionsColumn: false,
-        //    enableBulkEdit: false,
-        //    features: [{
-        //       ftype: 'grouping',
-        //       groupHeaderTpl: '{name}'
-        //    }]
-        // });
-    },
     _displaySelectedView: function(){
-       this.logger.log('_displaySelectedView');
-       var data = this.data,
-           tab  = this.getSelectedTab();
+       var tab  = this.getSelectedTab(),
+           isScrum = tab === 'scrum',
+           isOther = tab === 'other';
 
-        if (!data || !tab || Ext.isEmpty(data)){
-           return;
-        }
+      this.clearAppMessage();
+      if (this.down('#teamGrid')){
+         this.down('#teamGrid').destroy();
+      }
 
-        var filteredData = Ext.Array.filter(data, function(d){
-            return d.get('classification') === tab;
-        });
+      this.down('#iterationsAgo') && this.down('#iterationsAgo').setVisible(isScrum);
+      this.down('#metric') && this.down('#metric').setVisible(isScrum || isOther);
 
-        var store = Ext.create('Rally.data.custom.Store',{
-            data: filteredData,
-            model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
-            pageSize: filteredData.length
-        });
-
-         this.down('rallygrid') && this.down('rallygrid').destroy();
-        this.add({
-           xtype: 'rallygrid',
-           store: store,
-           columnCfgs: this._getColumnCfgs(this.getUsePoints(), tab),
-           showPagingToolbar: false,
-           showRowActionsColumn: false,
-           enableBulkEdit: false
-        });
-
-    },
-    _getColumnCfgs: function(usePoints, tab){
-
-        var metric = this.down('#metric').getRecord().get('name');
-
-        var cols = [{
-           dataIndex: 'team',
-           text: 'Team',
-           flex: 3
-        },{
-            dataIndex: '__totalWorkItems',
-            text: 'Total Work Items',
-            align: 'center',
-            sortable: false,
-            flex: 1,
-            listeners: {
-                 scope: this,
-                 //headerclick: this._showColumnDescription,
-                 afterrender: this._initTooltip
-             }
-         }];
-         if (tab === 'inactive') { return cols; }
-
-         cols.push({
-            dataIndex: '__activeWorkItems',
-            text: 'Active Work Items',
-            sortable: false,
-            align: 'center',
-            flex: 1,
-            listeners: {
-                 scope: this,
-                 //headerclick: this._showColumnDescription,
-                 afterrender: this._initTooltip
-             }
-         });
-
-         if (tab === 'other') { return cols; }
-
-        cols.push({
-            dataIndex: '__iteration',
-            text: 'Iteration',
-            sortable: false,
-            flex: 3,
-            renderer: function(v,m,r){
-               if (v && v.Name){
-                   return v.Name;
-               }
-               return '--';
-            }
-          });
-
-
-         if (this.getUsePoints()){
-            cols.push({
-               dataIndex: '__plannedVelocity',
-               text: 'Iteration Planned Velocity',
-               sortable: false,
-               align: 'center',
-               flex: 1,
-               renderer: this._plannedVelocityRenderer,
-               toolTip: 'The planned velocity set on the Iteration',
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-             });
-             cols.push({
-                dataIndex: '__ratioEstimated',
-                sortable: false,
-                text: '% Items Estimated',
-                align: 'center',
-                flex: 1,
-                renderer: this._percentRenderer,
-                listeners: {
-                     scope: this,
-                     //headerclick: this._showColumnDescription,
-                     afterrender: this._initTooltip
-                 }
-             });
-             cols.push({
-               dataIndex: '__planned',
-                text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
-                sortable: false,
-                align: 'center',
-                flex: 1,
-                renderer: this._pointsPctRenderer,
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-             });
-
-             cols.push({
-               dataIndex: '__currentPlanned',
-               sortable: false,
-               text: Ext.String.format("Current Planned ({0})", metric),
-               align: 'center',
-               flex: 1,
-               renderer: this._pointsPctRenderer,
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-            });
-
-             cols.push({
-               sortable: false,
-               dataIndex: '__velocity',
-               text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
-               align: 'center',
-               flex: 1,
-               renderer: this._pointsPctRenderer,
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-             });
-
-
-         } else {
-             cols.push({
-               sortable: false,
-               dataIndex: '__planned',
-               text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
-               flex: 1,
-               align: 'center',
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-             });
-
-             cols.push({
-               sortable: false,
-               dataIndex: '__currentPlanned',
-               text: Ext.String.format("Current Planned ({0})", metric),
-               flex: 1,
-               align: 'center',
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-            });
-
-             cols.push({
-               sortable: false,
-               dataIndex: '__velocity',
-               text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
-               flex: 1,
-               align: 'center',
-               listeners: {
-                    scope: this,
-                    //headerclick: this._showColumnDescription,
-                    afterrender: this._initTooltip
-                }
-             });
-         }
-
-         cols = cols.concat([{
-           sortable: false,
-           dataIndex: '__ratioInProgress',
-            text: Ext.String.format("% Average Daily in Progress ({0})", metric),
-            align: 'center',
-            flex: 1,
-            renderer: this._percentRenderer,
-            listeners: {
-                 scope: this,
-                 //headerclick: this._showColumnDescription,
-                 afterrender: this._initTooltip
-             }
-        },{
-          sortable: false,
-          dataIndex: '__acceptedAtSprintEnd',
-          text: Ext.String.format("% Accepted by Sprint End ({0})", metric),
-          align: 'center',
-          flex: 1,
-          renderer: this._percentRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        },{
-          sortable: false,
-          dataIndex: '__acceptedAfterSprintEnd',
-          text: Ext.String.format("% Accepted after Sprint End ({0})", metric),
-          align: 'center',
-          flex: 1,
-          renderer: this._percentRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        },{
-          sortable: false,
-          dataIndex: '__addedScope',
-          text: Ext.String.format("Added Scope ({0})", metric),
-          align: 'center',
-          flex: 1,
-          renderer: this._scopeRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        },{
-          sortable: false,
-          dataIndex: '__removedScope',
-          text: Ext.String.format("Removed Scope ({0})", metric),
-          align: 'center',
-          flex: 1,
-          renderer: this._scopeRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        },{
-          sortable: false,
-          dataIndex: '__netChurn',
-          text: Ext.String.format("Net Churn ({0})", metric),
-          align: 'center',
-          flex: 1,
-          renderer: this._percentRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        },{
-          dataIndex: '__plannedLoad',
-          sortable: false,
-          text: 'Planning Load',
-          flex: 1,
-          renderer: this._percentRenderer,
-          listeners: {
-               scope: this,
-               //headerclick: this._showColumnDescription,
-               afterrender: this._initTooltip
-           }
-        }]);
-        return cols;
-    },
-    _initTooltip: function(column){
-      var tool_tip = Rally.technicalservices.util.HealthRenderers.getTooltip(column.dataIndex);
-
-      Ext.create('Rally.ui.tooltip.ToolTip', {
-          target : column.getEl(), //target_element,
-          html: tool_tip
-      });
-    },
-    _plannedVelocityRenderer: function(v,m,r){
-      var color = v > 0 ? Rally.technicalservices.util.HealthRenderers.green : Rally.technicalservices.util.HealthRenderers.red;
-      m.tdAttr = 'data-qtip="The planned velocity set on the Iteration"';
-      m.style = 'padding-right:7px;text-align:center;background-color:'+color;
-      return v;
-    },
-    _percentRenderer: function(v,m,r, rowIdx, colIdx){
-        var fieldName = this.columns[colIdx].dataIndex;
-        if (v >= 0 && v < 2){
-          var color = Rally.technicalservices.util.HealthRenderers.getCellColor(v, fieldName);
-          m.style = 'padding-right:7px;text-align:center;background-color:'+color;
-          return Math.round(v * 100) + ' %';
-        }
-        return '--';
-    },
-    _scopeRenderer: function(v,m,r,rowIdx, colIdx){
-      var plannedPoints = r.get('__planned'),
-          pct = plannedPoints ? v/plannedPoints : -1;
-
-       var fieldName = this.columns[colIdx].dataIndex;
-       if (pct >= 0){
-          var color = Rally.technicalservices.util.HealthRenderers.getCellColor(pct, fieldName);
-          m.style = 'padding-right:7px;text-align:center;background-color:'+color;
-          return v;
-       }
-       return v;
-    },
-    _pointsPctRenderer: function(v,m,r,rowIdx, colIdx){
-        var plannedVelocity = r.get('__iteration') && r.get('__iteration').PlannedVelocity,
-            pct = plannedVelocity ? v/plannedVelocity : -1;
-        var fieldName = this.columns[colIdx].dataIndex;
-         if (pct >= 0){
-            var color = Rally.technicalservices.util.HealthRenderers.getCellColor(pct, fieldName);
-            m.style = 'padding-right:7px;text-align:center;background-color:'+color;
-            return v;
-         }
-         return '--';
-    },
-    _export: function(){
-       if (!this.down('rallygrid')){
+       if (tab === 'scrum' && this.getIterationsAgo() < 1 || this.getIterationsAgo() > this.maxIterationsAgo){
+         this.addAppMessage("Please select a valid # Iterations Ago between 1 and " + this.maxIterationsAgo + ".");
          return;
        }
 
-       var store = this.down('rallygrid').getStore(),
-          cols = this._getColumnCfgs(this.getUsePoints());
+        if (!this.data || !tab || Ext.isEmpty(this.data)){
+           return;
+        }
 
-      cols.unshift({dataIndex: 'classification', text:'Classification'});
-      var data = [_.pluck(cols,'text').join(',')];
+        this._addGrid(this.data);
 
-       store.each(function(r){
-          var row = [];
+    },
+    _addGrid: function(data){
+      var gridtype = this.getCurrentGridType(),
+          tab = this.getSelectedTab();
 
-          Ext.Array.each(cols, function(c){
+      this.clearAppMessage();
+      if (this.down('#teamGrid')){
+         this.down('#teamGrid').destroy();
+      }
 
-            var val = r.get(c.dataIndex);
-            if (Ext.isObject(val)){
-               val = val._refObjectName || val.Name;
-            }
-            if (val < 0){
-              val = '';
-            }
-            row.push(val);
-          });
-          data.push(row.join(','));
-       });
+      this.logger.log('_addGrid', gridtype, data);
 
-       var csv = data.join('\r\n'),
-          fileName = Ext.String.format('health-{0}.csv', Rally.util.DateTime.format(new Date(),'Y-m-d-h-i-s'));
+      var filteredData = Ext.Array.filter(data, function(d){
+          return d.get('classification') === tab;
+      });
 
-       CATS.teamassessmentapps.utils.Toolbox.saveAs(csv,fileName);
+      if (!filteredData || filteredData.length === 0){
+         this.addAppMessage("No teams found for the selected classification.");
+         return;
+      }
+
+      var store = Ext.create('Rally.data.custom.Store',{
+          data: filteredData,
+          model: 'Rally.technicalservices.utils.DomainProjectHealthModel',
+          pageSize: filteredData.length
+      });
+
+      this.add({
+         xtype: gridtype,
+         store: store,
+         usePoints: this.getUsePoints()
+      });
+    },
+
+    _export: function(){
+        if (!this.data){
+           Rally.ui.notify.Notifier.showWarning({message: 'No data to export.'});
+           return;
+        }
+
+       CArABU.teamassessmentapps.teamhealth.TeamHealthExporter.exportAllData(this.data, this.getUsePoints());
     },
     _getProjectIterations: function(iterations, iterationsAgo){
       var projectIterations = {};
@@ -787,6 +403,12 @@ Ext.define("team-health", {
         });
     },
     _fetchIterations: function(iterationsAgo){
+        //if we are initializing and no iterations ago is sent in, then we will
+        //just get the most recent iteration for each team
+        if (!iterationsAgo){
+           iterationsAgo = 1;
+        }
+
         this.logger.log('_fetchIterations', this.domainProjects);
         var filters = Ext.Array.map(this.domainProjects, function(p){
            return {
@@ -812,7 +434,7 @@ Ext.define("team-health", {
         this.logger.log('_fetchIterations', pageSize);
         return this._fetchWsapiRecords({
            model: 'Iteration',
-           fetch: ['ObjectID','Name','StartDate','EndDate','Project','PlannedVelocity'],
+           fetch: ['ObjectID','Name','StartDate','EndDate','Project','PlannedVelocity','PlanEstimate'],
            filters: filters,
            sorters: {
               property: 'EndDate',
@@ -852,6 +474,116 @@ Ext.define("team-health", {
           fetch: ['ObjectID','PlanEstimate','AcceptedDate','ScheduleState','Project','Name','Iteration'],
           filters: filters
         });
+    },
+
+    /**
+       Utility Functions
+    **/
+    _getHashByField: function(records, fieldName, attribute){
+      var hash = {};
+      for (var i=0; i<records.length; i++){
+
+          var r = records[i].getData();
+          var key = attribute ? r[fieldName][attribute] : r[fieldName];
+
+          if (!hash[key]){
+             hash[key] = [];
+          }
+          hash[key].push(r);
+      }
+      return hash;
+    },
+    _getRangeFromSettings: function(settings, settingName){
+        var val = settings[settingName];
+
+        if (!Ext.isArray(val)){
+          val = val.split(',');
+        }
+        this.logger.log('_getRangeFromSettings', val);
+        return Ext.Array.map(val, function(v){ return Number(v); })
+    },
+    _setThreshholds: function(settings){
+
+       var range = this._getRangeFromSettings(settings, 'ratioInProgress');
+       Rally.technicalservices.util.HealthRenderers.metrics.__ratioInProgress.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__ratioInProgress.yellow = range[1];
+
+       var range = this._getRangeFromSettings(settings, 'acceptedAfterSprintEnd');
+       Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAfterSprintEnd.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAfterSprintEnd.yellow = range[1];
+
+       var range = this._getRangeFromSettings(settings, 'acceptedAtSprintEnd');
+       Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAtSprintEnd.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__acceptedAtSprintEnd.yellow = range[0];
+
+       var range = this._getRangeFromSettings(settings, 'ratioEstimated');
+       Rally.technicalservices.util.HealthRenderers.metrics.__ratioEstimated.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__ratioEstimated.yellow = range[0];
+
+       var range = this._getRangeFromSettings(settings, 'planned');
+       Rally.technicalservices.util.HealthRenderers.metrics.__planned.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__planned.yellow = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__currentPlanned.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__currentPlanned.yellow = range[0];
+
+       var range = this._getRangeFromSettings(settings, 'velocity');
+       Rally.technicalservices.util.HealthRenderers.metrics.__velocity.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__velocity.yellow = range[0];
+
+       var range = this._getRangeFromSettings(settings, 'addedScope');
+       Rally.technicalservices.util.HealthRenderers.metrics.__addedScope.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__addedScope.yellow = range[1];
+
+       var range = this._getRangeFromSettings(settings, 'removedScope');
+       Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.yellow = range[1];
+
+       var range = this._getRangeFromSettings(settings, 'plannedLoad');
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0]
+    },
+    /**
+     Configuration getter methods
+    **/
+    getSelectedButton: function(){
+      var btns = this.query('rallybutton[toggleGroup=classificationView]');
+      var selectedBtn = _.find(btns, function(b){ return b.pressed; });
+      return selectedBtn || null;
+
+    },
+    getSelectedTab: function(){
+        var btn = this.getSelectedButton();
+        if (btn){
+           var view = btn.itemId.split('-');
+           if (view.length === 2){
+              return view[1];
+           }
+        }
+        return null;
+    },
+    getIterationsAgo: function(){
+       return this.down('#iterationsAgo') && this.down('#iterationsAgo').getValue() || 0;  //defaults to last iteration
+    },
+    getShowTimebox: function(){
+      return false;
+    },
+    getCurrentGrid: function(){
+       return this.down('#teamGrid') || null;
+    },
+    getCurrentGridType: function(){
+       return this.getSelectedTab() + 'grid';
+    },
+    getUsePoints: function(){
+       return this.down('#metric').getValue() === 'points';
+    },
+    getActiveDays: function(){
+       return this.getSetting('activeDays') || 14;
+    },
+    getSkipZeroForEstimation: function(){
+       return false;
+    },
+    getDoneStates: function(){
+      return this.doneStates;
     },
     getSettingsFields: function(){
        var fields = this.callParent(),

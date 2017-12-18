@@ -17,7 +17,49 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     },{
         name: '__artifacts',
         type: 'object'
-    },{
+      },{
+          name: '__plannedLoad',
+          defaultValue: -1
+       },{
+           name: '__ratioEstimated',
+           defaultValue: -1
+       },{
+          name: '__planned',
+          defaultValue: -1
+      },{
+          name: '__currentPlanned',
+          defaultValue: -1
+      },{
+          name: '__velocity',
+          defaultValue: -1
+      },{
+          name: '__acceptedAfterSprintEnd',
+          defaultValue: -1
+      },{
+          name: '__acceptedAfterSprintEnd',
+          defaultValue: -1
+      },{
+          name: '__addedScope',
+          defaultValue: 0
+      },{
+          name: '__removedScope',
+          defaultValue: 0
+        },{
+            name: '__ratioInProgress',
+            defaultValue: -1
+        },{
+            name: '__currentVelocity',
+            defaultValue: -2
+        },{
+            name: '__workItemData',
+            type: 'object'
+        },{
+          name: '__plannedLoad',
+          defaultValue: -1
+        },{
+          name: '__netChurn',
+          defaultValue: -1
+      },{
         name: '__activeWorkItems',
         convert: function(value, record){
             if (record.get('__workItemData') && record.get('__workItemData').activeSnaps ){
@@ -45,11 +87,15 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
           }
       }
     },{
-       name: '__plannedLoad',
-       defaultValue: -1
-    },{
-        name: '__ratioEstimated',
-        defaultValue: -1
+      name: '__lastUpdatedWorkItem',
+      convert: function(value, record){
+          if (record.get('__workItemData') && record.get('__workItemData').latestUpdate ){
+              return record.get('__workItemData').latestUpdate;
+          } else {
+              return '--';
+          }
+      }
+
     },{
       name: '__plannedVelocity',
       convert: function(value, record){
@@ -59,27 +105,6 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
               return '--';
           }
       }
-    },{
-        name: '__planned',
-        defaultValue: -1
-    },{
-        name: '__currentPlanned',
-        defaultValue: -1
-    },{
-        name: '__velocity',
-        defaultValue: -1
-    },{
-        name: '__acceptedAfterSprintEnd',
-        defaultValue: -1
-    },{
-        name: '__acceptedAfterSprintEnd',
-        defaultValue: -1
-    },{
-        name: '__addedScope',
-        defaultValue: 0
-    },{
-        name: '__removedScope',
-        defaultValue: 0
 
     },{
          name: '__days',
@@ -91,59 +116,128 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
              }
          }
     },{
-        name: '__ratioInProgress',
-        defaultValue: -1
-    },{
-        name: '__currentVelocity',
-        defaultValue: -2
-    },{
-        name: '__workItemData',
-        type: 'object'
-    },{
-      name: '__plannedLoad',
-      defaultValue: -1
-    },{
-      name: '__netChurn',
-      defaultValue: -1
-    }],
-    calculate: function(usePoints, skipZeroForEstimation, doneStates, projects) {
-        this.resetDefaults();
-
-        if (this.get('__cfdRecords')) {
-            this._processCFD(this.get('__cfdRecords'), this.get('__iteration'), usePoints, doneStates);
-        }
-
-        if (this.get('__artifacts')){
-           this._mungeArtifacts(this.get('__artifacts'), usePoints);
-        }
-
-        var netChurn = 0;
-        if (this.get('__planned') > 0){
-           var addedScope = this.get('__addedScope') || 0,
-               removedScope = this.get('__removedScope') || 0;
-           netChurn = Math.abs(addedScope - removedScope)/this.get('__planned');
-        }
-        this.set('__netChurn', netChurn);
-
-        if (this.get('__plannedVelocity') > 0){
-          var planningLoad = this.get('__planned')/this.get('__plannedVelocity');
-          this.set('__plannedLoad', planningLoad);
-        }
-
-        var classification = 'inactive';
-        if (this.get('project') && this.get('project').Summary && this.get('project').Summary.Children &&
-            this.get('project').Summary.Children.State &&  this.get('project').Summary.Children.State.Open > 0){
-           classification = 'program';
+      name: '__activeScheduledIntoIteration',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var scheduledSnaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return s.Iteration > 0;
+            });
+            return scheduledSnaps.length;
         } else {
-          if (this.get('__workItemData') && this.get('__workItemData').activeSnaps  > 0){
-              classification = "other";
-              if (this.get('__iteration') && this.get('__plannedVelocity') > 0 && this.get('__planned') && this.get('__currentPlanned')){
-                   classification = "scrum";
-              }
-          }
+            return '--';
         }
-        this.set('classification', classification);
+      }
+    },{
+      name: '__activePortfolioItemCount',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var snaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return /PortfolioItem/.test(s._TypeHierarchy.slice(-1)[0]);
+            });
+            return snaps.length;
+        } else {
+            return '--';
+        }
+      }
+    },{
+      name: '__activeStoryCount',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var snaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return s._TypeHierarchy.slice(-1)[0] === 'HierarchicalRequirement';
+            });
+            return snaps.length;
+        } else {
+            return '--';
+        }
+      }
+    },{
+      name: '__activeDefectCount',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var snaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return s._TypeHierarchy.slice(-1)[0] === 'Defect';
+            });
+            return snaps.length;
+        } else {
+            return '--';
+        }
+      }
+    },{
+      name: '__activeTestCaseCount',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var snaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return s._TypeHierarchy.slice(-1)[0] === 'TestCase';
+            });
+            return snaps.length;
+        } else {
+            return '--';
+        }
+      }
+    },{
+      name: '__activeTaskCount',
+      convert: function(value, record){
+        if (record.get('__workItemData') && record.get('__workItemData').snaps && record.get('__workItemData').snaps.length > 0 ){
+            var snaps = _.filter(record.get('__workItemData').snaps, function(s){
+               return s._TypeHierarchy.slice(-1)[0] === 'Task';
+            });
+            return snaps.length;
+        } else {
+            return '--';
+        }
+      }
+    }],
+    initialize: function(){
+      this.resetDefaults();
+      console.log('workitemdata', this.get('__workItemData'));
+      var classification = 'inactive';
+      if (this.get('project') && this.get('project').Summary && this.get('project').Summary.Children &&
+          this.get('project').Summary.Children.State &&  this.get('project').Summary.Children.State.Open > 0){
+         classification = 'program';
+      } else {
+        if (this.get('__workItemData') && this.get('__workItemData').activeSnaps  > 0){
+            classification = "other";
+            if (this.get('__iteration') && this.get('__plannedVelocity') > 0 && this.get('__iteration').PlanEstimate > 0){
+                 classification = "scrum";
+            }
+        }
+      }
+      this.set('classification', classification);
+    },
 
+    updateScrumData: function(iteration, cfdRecords, artifacts, usePoints, skipZeroForEstimation, doneStates, projects) {
+
+        this.set('__cfdRecords', cfdRecords);
+        this.set('__artifacts', artifacts);
+        this.set('__iteration', iteration);
+
+        this.recalculate(usePoints, skipZeroForEstimation, doneStates, projects);
+
+    },
+    recalculate: function(usePoints, skipZeroForEstimation, doneStates, projects){
+      this.resetDefaults();
+
+      if (this.get('__cfdRecords')) {
+          this._processCFD(this.get('__cfdRecords'), this.get('__iteration'), usePoints, doneStates);
+      }
+
+      if (this.get('__artifacts')){
+         this._mungeArtifacts(this.get('__artifacts'), usePoints);
+      }
+
+      var netChurn = 0;
+      if (this.get('__planned') > 0){
+         var addedScope = this.get('__addedScope') || 0,
+             removedScope = this.get('__removedScope') || 0;
+         netChurn = Math.abs(addedScope - removedScope)/this.get('__planned');
+      }
+      this.set('__netChurn', netChurn);
+
+      if (this.get('__plannedVelocity') > 0){
+        var planningLoad = this.get('__planned')/this.get('__plannedVelocity');
+        this.set('__plannedLoad', planningLoad);
+      }
 
     },
     resetDefaults: function(){
