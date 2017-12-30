@@ -16,7 +16,9 @@ Ext.define("team-health", {
        removedScope: '10,25',
        activeDays: 20,
        netChurn: '15,20',
-       plannedLoad: '50,75'
+       plannedLoad: '50,75',
+       sdCycleTime: '10,25',
+       sdWIP: '10,25'
     }
   },
 
@@ -34,13 +36,15 @@ Ext.define("team-health", {
        scope: this
     });
   },
-
+  /**
+     adds component specific to this app
+  **/
   _initializeApp: function(){
 
      var selectors = [{
        xtype: 'rallybutton',
-       text: 'Scrum',
-       itemId: 'classicficationBtn-scrum',
+       text: 'Summary',
+       itemId: 'classicficationBtn-summary',
        margin: '10 -1 10 25',
        pressed: true,
        cls: 'primary rly-small',
@@ -53,7 +57,23 @@ Ext.define("team-health", {
        scope: this
      },{
        xtype: 'rallybutton',
+       text: 'Scrum',
+       itemId: 'classicficationBtn-scrum',
+       margin: '10 -1 10 -1',
+       pressed: false,
+       cls: 'secondary rly-small',
+       iconCls: 'icon-graph',
+       toggleGroup: 'classificationView',
+       toggleHandler: this._tabChange,
+       style: {
+          borderBottomRightRadius: 0,
+          borderTopRightRadius: 0
+       },
+       scope: this
+     },{
+       xtype: 'rallybutton',
        text: 'Other',
+       iconCls: 'icon-board',
        itemId: 'classicficationBtn-other',
        margin: '10 -1 10 -1',
        cls: 'secondary rly-small',
@@ -72,6 +92,7 @@ Ext.define("team-health", {
        itemId: 'classicficationBtn-program',
        margin: '10 -1 10 -1',
        cls: 'secondary rly-small',
+       iconCls: 'icon-portfolio',
        toggleGroup: 'classificationView',
        style: {
           borderBottomLeftRadius: 0,
@@ -87,6 +108,7 @@ Ext.define("team-health", {
        itemId: 'classicficationBtn-inactive',
        margin: '10 25 10 -1',
        cls: 'secondary rly-small',
+       iconCls: 'icon-box',
        toggleGroup: 'classificationView',
        style: {
           borderBottomLeftRadius: 0,
@@ -102,6 +124,7 @@ Ext.define("team-health", {
        minValue: 1,
        maxValue: this.maxIterationsAgo,
        margin: 10,
+       value: 1,
        emptyText: 'Last Iteration',
        listeners: {
           scope: this,
@@ -174,8 +197,13 @@ Ext.define("team-health", {
     });
 
   },
-  _fetchClassificationData: function(iterations){
-    var projectIterations = this._getProjectIterations(iterations, 1);
+
+  /**
+      _fetchClassificationData
+      Fetchs minimum data needed to classify teams as Scrum, Other, Program or Inactive.
+      The classification is needed up front so taht we can filter the data we retrieve for the classified teams.
+  **/
+  _fetchClassificationData: function(projectIterations){
     this.projectIterations = projectIterations;
     var domainProjects = this.domainProjects;
 
@@ -187,9 +215,13 @@ Ext.define("team-health", {
       failure: this._showErrorNotification,
       scope: this
     }).always(function(){ this.setLoading(false); },this);
-
   },
 
+  /**
+      _initializeData
+      Initializes the classification data and creates the models.  After data has been initialized, then
+      we can fetch the other data nad the initial scrum data
+  **/
     _initializeData: function(workItemData){
       this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
       var data = [];
@@ -209,8 +241,15 @@ Ext.define("team-health", {
       }, this);
       this.data = data ;
 
-      this._displaySelectedView();
-
+      this.setLoading('Fetching Other and Scrum data...');
+      Deft.Promise.all([
+        this._fetchOtherData(this.getActiveDays()),
+        this._fetchScrumData(this.projectIterations)
+      ], this).then({
+         success: this._displaySelectedView,
+         failure: this._showErrorNotification,
+         scope: this
+      }).always(function(){ this.setLoading(false); },this);
     },
 
     _updateUsePoints: function(){
@@ -235,13 +274,150 @@ Ext.define("team-health", {
         scope: this
       });
     },
+
+    _fetchOtherData: function(activeDays){
+      var deferred = Ext.create('Deft.Deferred');
+
+      //Now, only get data for the iterations in teams that we classified as scrum
+      var otherTeams = _.filter(this.data, function(d){
+         return d.get('classification') === 'other';
+      }).map(function(d){
+         return d.get('project').ObjectID;
+      });
+
+      if (otherTeams && otherTeams.length > 0){
+        var projectFilters = _.map(otherTeams, function(t){
+           return {
+               property: 'Project.ObjectID',
+               value: t
+           };
+        });
+
+        if (projectFilters.length > 1){
+           projectFilters = Rally.data.wsapi.Filter.or(projectFilters);
+        } else {
+           projectFilters = Ext.create('Rally.data.wsapi.Filter',projectFilters[0]);
+        }
+        // projectFilters = projectFilters.and({
+        //    property: 'ScheduleState',
+        //    value: 'Defined'
+        // });
+
+        var fromActiveDate = Rally.util.DateTime.toIsoString(Rally.util.DateTime.add(new Date(),'day',-activeDays));
+
+        this.logger.log('_fetchHistory teams', otherTeams, fromActiveDate);
+
+        Deft.Promise.all([
+          this._fetchHistory(fromActiveDate, otherTeams),
+          this._fetchWsapiRecords({
+            model: 'HierarchicalRequirement',
+            fetch: ['FormattedID','PlanEstimate','Project','Name','ScheduleState'],
+            filters: projectFilters.and({
+                property: 'ScheduleState',
+                value: 'Defined'
+            }),
+            sorters: {
+               property: 'CreationDate',
+               direction: 'ASC'
+            }
+          }),
+          this._fetchWsapiRecords({
+            model: 'HierarchicalRequirement',
+            fetch: ['FormattedID','PlanEstimate','InProgressDate','AcceptedDate','Project','Name'],
+            filters: projectFilters.and({
+                property: 'AcceptedDate',
+                operator: '>=',
+                value: fromActiveDate
+            }),
+            sorters: {
+               property: 'CreationDate',
+               direction: 'ASC'
+            }
+          })
+        ],this).then({
+            success: function(results){
+                this._processOtherData(results);
+                deferred.resolve();
+            },
+            failure: deferred.reject,
+            scope: this
+        });
+      } else {
+         deferred.resolve();
+      }
+      return deferred.promise;
+    },
+    _fetchHistory: function(fromActiveDate, teams){
+       var deferred = Ext.create('Deft.Deferred');
+
+       Ext.create('Rally.data.lookback.SnapshotStore', {
+          fetch: ['FormattedID','PlanEstimate','ScheduleState','_ValidFrom','_ValidTo'],
+          filters: [{
+             property: 'Project',
+             operator: 'in',
+             value: teams
+          },{
+             property: 'ScheduleState',
+             value: 'In-Progress'
+          },{
+             property: '_ValidTo',
+             operator: '>=',
+             value: fromActiveDate
+          },{
+             property: '_TypeHierarchy',
+             operator: 'in',
+             value: ['HierarchicalRequirement']
+          }],
+          removeUnauthorizedSnapshots: true,
+          limit: 'Infinity',
+          hydrate: ['ScheduleState','Project'],
+          sorters: [{
+             property: '_ValidTo',
+             direction: 'ASC'
+          }]
+       }).load({
+          callback: function(snapshots, operation){
+             if(operation.wasSuccessful()){
+               deferred.resolve(snapshots);
+             } else {
+               deferred.reject('Error loading history: ' + operation.error.errors.join(','));
+             }
+          }
+       });
+       return deferred.promise;
+    },
+    _processOtherData: function(results){
+        this.logger.log('_processOtherData', results);
+        var history = results[0],
+            definedItems = results[1],
+            acceptedItems = results[2];
+
+        var historyHash = this._getHashByField(history,'Project','Name'),
+              definedHash = this._getHashByField(definedItems,'Project','Name'),
+              acceptedHash = this._getHashByField(acceptedItems, 'Project','Name');
+
+
+        this.logger.log('_proecessOtherData hashes', historyHash,definedHash,acceptedHash);
+
+        Ext.Array.each(this.data, function(d){
+
+          var projectName = d.get('team'),
+              isOther = d.get('classification') === 'other',
+              history = historyHash[projectName] || [],
+              definedRecords = definedHash[projectName] || [],
+              acceptedRecords = acceptedHash[projectName] || [];
+
+           if (isOther){
+             d.updateOtherData(history, definedRecords, acceptedRecords, this.getActiveDays(), this.getUsePoints(),this.getSkipZeroForEstimation());
+           }
+        }, this);
+
+    },
     /**
       BEGIN Scrum data collection
     */
-    _fetchScrumData: function(iterations){
-
-      var projectIterations = this._getProjectIterations(iterations, this.getIterationsAgo());
-      this.projectIterations = projectIterations;
+    _fetchScrumData: function(projectIterations){
+      this.projectIterations = projectIterations || this.projectIterations;
 
       //Now, only get data for the iterations in teams that we classified as scrum
       var scrumTeams = _.filter(this.data, function(d){
@@ -292,10 +468,11 @@ Ext.define("team-health", {
          if (isScrum){
            d.updateScrumData(iteration, cfdRecords, artifacts, this.getUsePoints(),this.getSkipZeroForEstimation(),this.getDoneStates());
          }
-
-
       }, this);
-      this._addGrid(this.data);
+
+      if (this.getSelectedTab() === 'scrum'){
+          this._addGrid(this.data);
+      }
 
     },
     // END SCRUM DATA PROCESSING
@@ -303,7 +480,8 @@ Ext.define("team-health", {
     _displaySelectedView: function(){
        var tab  = this.getSelectedTab(),
            isScrum = tab === 'scrum',
-           isOther = tab === 'other';
+           isOther = tab === 'other',
+           isSummary = tab === 'summary';
 
       this.logger.log('_displaySelectedView', tab, this.data);
 
@@ -313,7 +491,8 @@ Ext.define("team-health", {
       }
 
       this.down('#iterationsAgo') && this.down('#iterationsAgo').setVisible(isScrum);
-      this.down('#metric') && this.down('#metric').setVisible(isScrum || isOther);
+      this.down('#metric') && this.down('#metric').setVisible(isScrum || isOther || isSummary);
+
 
        if (tab === 'scrum' && this.getIterationsAgo() < 1 || this.getIterationsAgo() > this.maxIterationsAgo){
          this.addAppMessage("Please select a valid # Iterations Ago between 1 and " + this.maxIterationsAgo + ".");
@@ -324,7 +503,7 @@ Ext.define("team-health", {
            return;
         }
 
-        this._addGrid(this.data);
+          this._addGrid(this.data);
 
     },
     _addGrid: function(data){
@@ -338,13 +517,20 @@ Ext.define("team-health", {
 
       this.logger.log('_addGrid', gridtype, data);
 
-      var filteredData = Ext.Array.filter(data, function(d){
-          return d.get('classification') === tab;
+
+      filteredData = Ext.Array.filter(data, function(d){
+          return tab === 'summary' || d.get('classification') === tab;
       });
 
       if (!filteredData || filteredData.length === 0){
          this.addAppMessage("No teams found for the selected classification.");
          return;
+      }
+
+      if (tab === 'summary'){
+          filteredData = Ext.Array.sort(filteredData, function(d){
+              return d.classification + d.team;
+          });
       }
 
       var store = Ext.create('Rally.data.custom.Store',{
@@ -370,6 +556,11 @@ Ext.define("team-health", {
     },
     _getProjectIterations: function(iterations, iterationsAgo){
       var projectIterations = {};
+
+      if (!iterationsAgo){
+         iterationsAgo = 1;
+      }
+
       Ext.Array.each(iterations, function(i){
          if (!projectIterations[i.get('Project').Name]){
            projectIterations[i.get('Project').Name] = [];
@@ -421,9 +612,16 @@ Ext.define("team-health", {
           }
         });
     },
+    /**
+      _fetchIterations
+      Fetches the iterations for the domain projects getting the latest iterations per the iterations ago setting.
+      RETURNS: a hash of iteration by project name
+    **/
     _fetchIterations: function(iterationsAgo){
         //if we are initializing and no iterations ago is sent in, then we will
         //just get the most recent iteration for each team
+        var deferred = Ext.create('Deft.Deferred');
+
         if (!iterationsAgo){
            iterationsAgo = 1;
         }
@@ -451,7 +649,7 @@ Ext.define("team-health", {
 
         var pageSize = this.domainProjects.length * iterationsAgo;
         this.logger.log('_fetchIterations', pageSize);
-        return this._fetchWsapiRecords({
+        this._fetchWsapiRecords({
            model: 'Iteration',
            fetch: ['ObjectID','Name','StartDate','EndDate','Project','PlannedVelocity','PlanEstimate'],
            filters: filters,
@@ -461,7 +659,16 @@ Ext.define("team-health", {
            },
            pageSize: pageSize,
            limit: pageSize
+        }).then({
+            success: function(iterations){
+              var projectIterations = this._getProjectIterations(iterations, iterationsAgo);
+              deferred.resolve(projectIterations);
+            },
+            failure: this._showErrorNotification,
+            scope: this
         });
+
+        return deferred.promise;
 
     },
     _fetchArtifactData: function(model, projectIterations){
@@ -518,7 +725,7 @@ Ext.define("team-health", {
         if (!Ext.isArray(val)){
           val = val.split(',');
         }
-        this.logger.log('_getRangeFromSettings', val);
+      //  this.logger.log('_getRangeFromSettings', val);
         return Ext.Array.map(val, function(v){ return Number(v); })
     },
     _setThreshholds: function(settings){
@@ -559,7 +766,15 @@ Ext.define("team-health", {
 
        var range = this._getRangeFromSettings(settings, 'plannedLoad');
        Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
-       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0]
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0];
+
+       var range = this._getRangeFromSettings(settings, 'sdCycleTime');
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[1]
+
+       var range = this._getRangeFromSettings(settings, 'sdWIP');
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[1]
     },
     /**
      Configuration getter methods
@@ -813,6 +1028,46 @@ Ext.define("team-health", {
          listeners: {
             drag: function(sl){
                 sl.setFieldLabel(Ext.String.format("Planned Load  <span class=\"pct\">Red - {0}% - Yellow - {1}% - Green</span>",sl.getValues()[0],sl.getValues()[1]));
+            }
+         }
+      });
+
+      var vals = this._getRangeFromSettings(settings, 'sdCycleTime');
+      fields.push({
+         xtype:'multislider',
+         fieldLabel: Ext.String.format("Cycle Time CoV  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",vals[0],vals[1]),
+         labelAlign: 'top',
+         labelCls: 'sliderlabel',
+         name: 'sdCycleTime',
+         width: 400,
+         margin: 25,
+         values: vals,
+         increment: 5,
+         minValue: 0,
+         maxValue: 100,
+         listeners: {
+            drag: function(sl){
+                sl.setFieldLabel(Ext.String.format("Cycle Time CoV  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",sl.getValues()[0],sl.getValues()[1]));
+            }
+         }
+      });
+
+      var vals = this._getRangeFromSettings(settings, 'sdWIP');
+      fields.push({
+         xtype:'multislider',
+         fieldLabel: Ext.String.format("WIP CoV  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",vals[0],vals[1]),
+         labelAlign: 'top',
+         labelCls: 'sliderlabel',
+         name: 'sdWIP',
+         width: 400,
+         margin: 25,
+         values: vals,
+         increment: 5,
+         minValue: 0,
+         maxValue: 100,
+         listeners: {
+            drag: function(sl){
+                sl.setFieldLabel(Ext.String.format("WIP CoV  <span class=\"pct\">Green - {0}% - Yellow - {1}% - Red</span>",sl.getValues()[0],sl.getValues()[1]));
             }
          }
       });

@@ -20,22 +20,33 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
     '__addedScope': 'Added Scope: This is the sum of points (or count) added each day over the course of the iteration. Note that the net scope change for the iteration should be represented by subtracting Removed Scope from Added Scope. This is calculated using Iteration Cumulative Flow Data.',
     '__removedScope': 'Removed Scope: This is the sum of points (or count) removed each day over the course of the iteration. Note that the net scope change for the iteration should be represented by subtracting Removed Scope from Added Scope. This is calculated using Iteration Cumulative Flow Data.',
     '__netChurn': 'Net Churn is the absolute value of the Added Scope - Removed Scope / Actual Planned at Iteration Start.',
-    '__plannedLoad': 'Planned Load is the Actual Planned at Sprint Start / Iteration Planned Velocity'
+    '__plannedLoad': 'Planned Load is the Actual Planned at Sprint Start / Iteration Planned Velocity',
+    '__throughput': "Throughput: Stories accepted within the active window specified in app settings.",
+    '__avgThroughput': "Average number of stories accepted per day within the active window specified in app settings.",
+    '__avgCycleTime': "Cycle Time: Average time (in days) from In-Progress to Accepted for any stories accepted within the active window specified in App settings.",
+    '__sdCycleTime': "Coefficient of Variation for the CycleTime (In-Progress to Accepted) for any stories accepted within the active window specified in App Settings.",
+    '__avgWIP': "Average of the daily Work In Progress for the active windows specified in app settings.",
+    '__sdWIP': "Coefficient of Variation for the daily work in progress for the active window specified in the app settings."
   },
 
-
+ /*
+    if metrics have a color range, then they should be here.
+    the calculator will use this to calculate the health index metric for each classification
+    */
   metrics: {
-     '__ratioInProgress': {green: 0, yellow: 0, reversed: true},
-     '__acceptedAfterSprintEnd': {green: 0, yellow: 0, reversed: true},
-     '__acceptedAtSprintEnd': {green: 0, yellow: 0},
-     '__ratioEstimated': {green: 0, yellow: 0},
-     '__planned': {green: 0, yellow: 0},
-     '__currentPlanned': {green: 0, yellow: 0},
-     '__velocity': {green: 0, yellow: 0},
-     '__addedScope': {green: 0, yellow: 0, reversed: true},
-     '__removedScope': {green: 0, yellow: 0, reversed: true},
-     '__netChurn': {green: 0, yellow: 0, reversed: true},
-     '__plannedLoad': {green: 0, yellow: 0, x2: true}
+     '__ratioInProgress': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
+     '__acceptedAfterSprintEnd': {green: 0, yellow: 0, reversed: true,classifications: ['scrum']},
+     '__acceptedAtSprintEnd': {green: 0, yellow: 0, classifications: ['scrum']},
+     '__ratioEstimated': {green: 0, yellow: 0, classifications: ['scrum','other']},
+     '__planned': {green: 0, yellow: 0, classifications: ['scrum']},
+     '__currentPlanned': {green: 0, yellow: 0, classifications: ['scrum']},
+     '__velocity': {green: 0, yellow: 0, classifications: ['scrum']},
+     '__addedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
+     '__removedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
+     '__netChurn': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
+     '__plannedLoad': {green: 0, yellow: 0, x2: true, classifications: ['scrum']},
+     '__sdCycleTime': {green: 0, yellow: 0, reversed: true, classifications: ['other']},
+     '__sdWIP': {green: 0, yellow: 0, reversed: true, classifications: ['other']}
   },
   getTooltip: function(metricName){
       return Rally.technicalservices.util.HealthRenderers.tooltips[metricName] || 'No tooltip';
@@ -65,5 +76,25 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
       color = Rally.technicalservices.util.HealthRenderers.yellow;
     }
     return color;
+  },
+  
+  /*
+  returns the distribution of color indicators for the summary tab
+  */
+  getVisualHealthIndex: function(recordData){
+    var colors = [];
+      _.each(Rally.technicalservices.util.HealthRenderers.metrics, function(obj,key){
+          if (_.contains(obj.classifications, recordData.classification)){
+              var color = Rally.technicalservices.util.HealthRenderers.getCellColor(recordData[key],key);
+              colors.push(color);
+          }
+      });
+
+      if (colors.length > 0){
+          colors = _.countBy(colors, function(c){ return c; });
+          return colors;
+      }
+      return null;
+
   }
 });

@@ -94,6 +94,8 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
             margin: 10,
             multiSelect: true,
             emptyText: 'Project Scope',
+            width: 250,
+            labelWidth: 75,
             field: this.getProjectDomainField(),
             allowClear: true
           });
@@ -248,7 +250,7 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
     },
     _fetchWsapiRecords: function(config){
        var deferred = Ext.create('Deft.Deferred');
-
+       this.logger.log('_fetchWsapiRecords', config && config.filters && config.filters.toString());
        if (!config.limit){
          config.limit = "Infinity";
        }
