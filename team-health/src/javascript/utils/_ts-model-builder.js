@@ -6,7 +6,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         type: 'object'
       },{
         name: 'classification'
-    },{
+      },{
         name: 'team'
     },{
         name: '__iteration',
@@ -59,6 +59,21 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         },{
           name: '__netChurn',
           defaultValue: -1
+      },{
+        name: '__avgCycleTime', defaultValue: -1
+      },{
+        name: '__sdCycleTime', defaultValue: -1
+      },{
+        name: '__avgThroughput', defaultValue: -1
+      },{
+        name: '__throughput', defaultValue: -1
+      },{
+        name: '__avgWIP', defaultValue: -1
+      },{
+        name: '__sdWIP', defaultValue: -1
+      },{
+         name: '__healthIndex',
+         type: 'auto'
       },{
         name: '__activeWorkItems',
         convert: function(value, record){
@@ -187,6 +202,13 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
             return '--';
         }
       }
+    },{
+      name: 'projectName',
+      convert: function(value, record){
+          if (record.get('project') && record.get('project').Name ){
+              return record.get('project').Name;
+          }
+      }
     }],
     initialize: function(){
       this.resetDefaults();
@@ -215,8 +237,100 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         this.recalculate(usePoints, skipZeroForEstimation, doneStates, projects);
 
     },
+    updateOtherData: function(history, definedArtifacts, acceptedArtifacts, activeDays, usePoints, skipZeroForEstimation, doneStates, projects){
+         this.set('__history', history);
+         this.set('__definedArtifacts', definedArtifacts);
+         this.set('__acceptedArtifacts', acceptedArtifacts);
+
+         this.set('__activeDays', activeDays);
+         this.logger.log('updateOotherData',acceptedArtifacts, definedArtifacts);
+         this.recalculate(usePoints, skipZeroForEstimation, doneStates, projects);
+    },
+
     recalculate: function(usePoints, skipZeroForEstimation, doneStates, projects){
       this.resetDefaults();
+
+      if (this.get('classification') === 'scrum'){
+          this.recalculateScrumData(usePoints, skipZeroForEstimation, doneStates, projects);
+      }
+
+      if (this.get('classification') === 'other'){
+          this._calculateKanbanMetrics(usePoints, skipZeroForEstimation, doneStates, projects);
+      }
+
+      this.set('__healthIndex', Rally.technicalservices.util.HealthRenderers.getVisualHealthIndex(this.getData()));
+    },
+    _calculateKanbanMetrics: function(usePoints, skipZeroForEstimation, doneStates, projects){
+
+        var acceptedArtifacts = this.get('__acceptedArtifacts') || [],
+            definedArtifacts = this.get('__definedArtifacts') || [],
+            history = this.get('__history') || [];
+
+        //%estimated
+        var estimated = 0,
+            total = 0;
+        for (var i=0; i<definedArtifacts.length; i++){
+           if (definedArtifacts[i].PlanEstimate){
+              estimated++;
+           }
+           total++;
+        }
+        var ratioEstimated = total > 0 ? estimated/total : 0;
+        this.set('__ratioEstimated', ratioEstimated);
+
+        var activeDays = this.get('__activeDays');
+
+        //CycleTime
+        var cycleTimes = this._calculateDailyCycleTime(acceptedArtifacts, activeDays);
+        var avgCycletime = Ext.Array.mean(cycleTimes);
+        var sdCycleTime = avgCycletime > 0 ? Rally.technicalservices.util.Health.getStandardDeviation(cycleTimes) / avgCycletime : -1;
+
+        //Throughput
+        var throughput = this._calculateDailyThroughput(acceptedArtifacts, activeDays, usePoints);
+
+        //Average WIP
+        var wip = Rally.technicalservices.util.Health.getDailyWIP(history,activeDays,usePoints);
+        var avgWIP = Ext.Array.mean(wip);
+        var sdWIP = avgWIP > 0 ? Rally.technicalservices.util.Health.getStandardDeviation(wip)/avgWIP : -1;
+        this.logger.log('_calculateKanbanMetrics', wip, throughput, cycleTimes);
+        this.set('__avgCycleTime', avgCycletime);
+        this.set('__sdCycleTime', sdCycleTime);
+        this.set('__avgThroughput', Ext.Array.mean(throughput));
+        this.set('__throughput', Ext.Array.sum(throughput));
+        this.set('__avgWIP', avgWIP);
+        this.set('__sdWIP',sdWIP);
+
+    },
+
+    _calculateDailyCycleTime: function(artifacts, activeDays){
+      var cycleTimes = [];
+      Ext.Array.each(artifacts, function(a){
+         var day = Rally.util.DateTime.format(a.AcceptedDate,'Y-m-d'),
+            cycleTime = Rally.util.DateTime.getDifference(a.AcceptedDate,a.InProgressDate,'second');
+         cycleTime = cycleTime / 86400;
+         cycleTimes.push(cycleTime);
+      });
+      return cycleTimes;
+    },
+    _calculateDailyThroughput: function(artifacts, activeDays, usePoints){
+      var accepted = {},
+          currentDay = new Date();
+      for (var i = 0; i<activeDays; i++){
+         var day = Rally.util.DateTime.format(Rally.util.DateTime.add(currentDay,'day',-i),'Y-m-d');
+         accepted[day] = 0;
+      }
+
+      Ext.Array.each(artifacts, function(a){
+         var day = Rally.util.DateTime.format(a.AcceptedDate,'Y-m-d');
+         var amt = usePoints ? (a.PlanEstimate || 0) : 1 ;
+         if (accepted[day] >= 0){
+           accepted[day] += amt;
+         }
+      });
+      return Ext.Object.getValues(accepted);
+
+    },
+    recalculateScrumData: function(usePoints, skipZeroForEstimation, doneStates, projects){
 
       if (this.get('__cfdRecords')) {
           this._processCFD(this.get('__cfdRecords'), this.get('__iteration'), usePoints, doneStates);
@@ -238,7 +352,6 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         var planningLoad = this.get('__planned')/this.get('__plannedVelocity');
         this.set('__plannedLoad', planningLoad);
       }
-
     },
     resetDefaults: function(){
         this.set('__ratioEstimated',-1);

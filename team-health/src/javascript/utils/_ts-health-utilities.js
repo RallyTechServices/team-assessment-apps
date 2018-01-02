@@ -163,7 +163,7 @@ Ext.define('Rally.technicalservices.util.Health',{
     getPlanned: function(health_hash){
       var days = _.sortBy(_.keys(health_hash), function(date){return Date.parse(date)});
       var day_0 = _.values(health_hash[days[0]]);
-    
+
       return Ext.Array.sum(day_0) || 0;
       return Ext.Array.sum(health_hash[days[0]]) || 0;
     },
@@ -302,5 +302,34 @@ Ext.define('Rally.technicalservices.util.Health',{
             //console.log('--', counter);
             return counter;
         }
+    },
+    getDailyWIP: function(snaps, daysBack, usePoints){
+      var wip = {},
+        currentDay = new Date();
+        currentDay.setHours(23,59,59,999),
+        startDay = Rally.util.DateTime.add(currentDay,'day', -daysBack);  //zeroing out to end of day
+
+      for (var i=0; i<snaps.length; i++){
+         var snap = snaps[i],
+            validTo = Rally.util.DateTime.fromIsoString(snap._ValidTo),
+            validFrom = Rally.util.DateTime.fromIsoString(snap._ValidFrom);
+
+            if (snap.ScheduleState === 'In-Progress'){
+              if (validFrom < startDay){
+                 validFrom = startDay;
+              }
+              if (validTo > currentDay){
+                 validTo = currentDay;
+              }
+
+              while (validFrom < validTo){
+                var ipVal = usePoints ? (snap.PlanEstimate || 0) : 1;
+                var day = Rally.util.DateTime.format(validFrom,'Y-m-d');
+                wip[day] = (wip[day] || 0) + ipVal;
+                validFrom = Rally.util.DateTime.add(validFrom,'day',1);
+              }
+            }
+      }
+      return Ext.Object.getValues(wip);
     }
 });

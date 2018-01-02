@@ -31,7 +31,15 @@
   text-transform: lowercase;
 
 }
-
 .x-column-header-text {
    cursor: pointer;
+}
+
+.team-label {
+    font-size: 14px;
+    padding-right: 5px;
+}
+
+.inactive {
+  color: #888;
 }
