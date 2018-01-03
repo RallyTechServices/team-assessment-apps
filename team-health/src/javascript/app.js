@@ -175,8 +175,7 @@ Ext.define("team-health", {
   _updateView: function(){
 
     this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
-    this.down('#teamGrid') && this.down('#teamGrid').destroy();
-    this.clearAppMessage();
+    this._clearView();
 
     if (!this.domainProjects){  // || this.domainProjects.length === 0){
        this.addAppMessage("Project information loading...");
@@ -476,7 +475,17 @@ Ext.define("team-health", {
 
     },
     // END SCRUM DATA PROCESSING
+    _clearView: function(){
+      this.clearAppMessage();
 
+      if (this.down('#teamGrid')){
+         this.down('#teamGrid').destroy();
+      }
+
+      if (this.down('#charts')){
+        this.down('#charts').destroy();
+      }
+    },
     _displaySelectedView: function(){
        var tab  = this.getSelectedTab(),
            isScrum = tab === 'scrum',
@@ -485,10 +494,7 @@ Ext.define("team-health", {
 
       this.logger.log('_displaySelectedView', tab, this.data);
 
-      this.clearAppMessage();
-      if (this.down('#teamGrid')){
-         this.down('#teamGrid').destroy();
-      }
+      this._clearView();
 
       this.down('#iterationsAgo') && this.down('#iterationsAgo').setVisible(isScrum);
       this.down('#metric') && this.down('#metric').setVisible(isScrum || isOther || isSummary);
@@ -510,10 +516,7 @@ Ext.define("team-health", {
       var gridtype = this.getCurrentGridType(),
           tab = this.getSelectedTab();
 
-      this.clearAppMessage();
-      if (this.down('#teamGrid')){
-         this.down('#teamGrid').destroy();
-      }
+      this._clearView();
 
       this.logger.log('_addGrid', gridtype, data);
 
@@ -531,6 +534,8 @@ Ext.define("team-health", {
           filteredData = Ext.Array.sort(filteredData, function(d){
               return d.classification + d.team;
           });
+
+          this._addSummaryCharts(filteredData);
       }
 
       var store = Ext.create('Rally.data.custom.Store',{
@@ -545,7 +550,84 @@ Ext.define("team-health", {
          usePoints: this.getUsePoints()
       });
     },
+    _addSummaryCharts: function(data){
 
+
+
+        var scrumChartData = this._getChartObjectDef(filteredData, 'scrum'),
+            otherChartData = this._getChartObjectDef(filteredData, 'other');
+
+        this.add({
+           xtype: 'container',
+           itemId: 'charts',
+           layout: 'hbox',
+           items: [
+             scrumChartData,
+             otherChartData
+           ]
+        });
+    },
+    _getChartObjectDef: function(data, type){
+      var colors = [Rally.technicalservices.util.HealthRenderers.red,
+                      Rally.technicalservices.util.HealthRenderers.yellow,
+                      Rally.technicalservices.util.HealthRenderers.green,
+                      Rally.technicalservices.util.HealthRenderers.grey];
+
+      var chartData = this._getChartData(data,type,colors),
+          typeDisplay = type[0].toUpperCase() + type.substring(1);
+
+      if (chartData){
+         return {
+            chartColors: colors,
+            xtype: 'rallychart',
+            width: '50%',
+            chartConfig: {
+                chart: {type: 'pie'},
+                title: { text: typeDisplay },
+                plotOptions: {
+                  pie: {
+                    showInLegend: false,
+                    dataLabels: {enabled: false}
+                    }
+                }
+            },
+            chartData: chartData
+         };
+      }
+      return {
+         xtype: 'container',
+         html: '<div class="no-data-container"><div class="secondary-message">No data for ' + typeDisplay + ' teams.</div></div>',
+         width: '50%'
+      };
+
+    },
+    _getChartData: function(data, type, colors){
+      var filteredData =  Ext.Array.filter(data, function(d){
+            return d.get('classification') === type;
+      });
+
+      var seriesData = [];
+      Ext.Array.each(colors, function(c){
+        var total = _.reduce(filteredData, function(tot, d){
+           var hIdx = d.get('__healthIndex');
+           tot += (hIdx && hIdx[c] || 0);
+           return tot;
+        },0);
+        seriesData.push(total);
+      });
+
+      if (seriesData.length === 0 || Ext.Array.sum(seriesData) === 0){
+         return null;
+      }
+
+        return {
+           series: [{
+              name: 'Health',
+              colorByPoint: true,
+              data: seriesData
+          }]
+        };
+    },
     _export: function(){
         if (!this.data){
            Rally.ui.notify.Notifier.showWarning({message: 'No data to export.'});

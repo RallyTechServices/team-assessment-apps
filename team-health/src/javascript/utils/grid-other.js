@@ -37,6 +37,14 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.OtherGrid',{
                afterrender: this._initTooltip
            }
 
+         },{
+            dataIndex: '__defined',
+            text: '# Defined Stories',
+            sortable: false,
+            flex: 1,
+            listeners: {
+                 afterrender: this._initTooltip
+             }
         },{
            dataIndex: '__throughput',
            text: 'Accepted Stories ' + units,
