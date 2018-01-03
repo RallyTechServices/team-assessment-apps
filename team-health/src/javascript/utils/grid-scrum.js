@@ -61,17 +61,17 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.ScrumGrid',{
           Ext.apply({}, {
               dataIndex: '__planned',
               text: Ext.String.format("Actual Planned At Sprint Start ({0})", metric),
-              renderer: this._pointsPctRenderer,
+              renderer: this._metricRenderer,
           }, defaults),
           Ext.apply({}, {
               dataIndex: '__currentPlanned',
               text: Ext.String.format("Current Planned ({0})", metric),
-              renderer: this._pointsPctRenderer,
+              renderer: this._metricRenderer,
             }, defaults),
           Ext.apply({}, {
               dataIndex: '__velocity',
               text: Ext.String.format("Actual Accepted At Sprint End ({0})", metric),
-              renderer: this._pointsPctRenderer,
+              renderer: this._metricRenderer,
             }, defaults)
         ]);
 
@@ -110,12 +110,12 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.ScrumGrid',{
         Ext.apply({}, {
           dataIndex: '__addedScope',
           text: Ext.String.format("Added Scope ({0})", metric),
-          renderer: this._scopeRenderer
+          renderer: this._metricRenderer
         }, defaults),
         Ext.apply({}, {
           dataIndex: '__removedScope',
           text: Ext.String.format("Removed Scope ({0})", metric),
-          renderer: this._scopeRenderer
+          renderer: this._metricRenderer
        }, defaults),
        Ext.apply({}, {
          dataIndex: '__netChurn',

@@ -34,31 +34,35 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
     the calculator will use this to calculate the health index metric for each classification
     */
   metrics: {
-     '__ratioInProgress': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
-     '__acceptedAfterSprintEnd': {green: 0, yellow: 0, reversed: true,classifications: ['scrum']},
-     '__acceptedAtSprintEnd': {green: 0, yellow: 0, classifications: ['scrum']},
-     '__ratioEstimated': {green: 0, yellow: 0, classifications: ['scrum','other']},
-     '__planned': {green: 0, yellow: 0, classifications: ['scrum']},
-     '__currentPlanned': {green: 0, yellow: 0, classifications: ['scrum']},
-     '__velocity': {green: 0, yellow: 0, classifications: ['scrum']},
-     '__addedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
-     '__removedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
-     '__netChurn': {green: 0, yellow: 0, reversed: true, classifications: ['scrum']},
-     '__plannedLoad': {green: 0, yellow: 0, x2: true, classifications: ['scrum']},
-     '__sdCycleTime': {green: 0, yellow: 0, reversed: true, classifications: ['other']},
-     '__sdWIP': {green: 0, yellow: 0, reversed: true, classifications: ['other']}
+     '__plannedVelocity': {green: 0, yellow: 0, classifications: ['scrum']},
+     '__ratioInProgress': {green: 0, yellow: 0, reversed: true, classifications: ['scrum'], colorFn: 'percent'},
+     '__acceptedAfterSprintEnd': {green: 0, yellow: 0, reversed: true,classifications: ['scrum'], colorFn: 'percent'},
+     '__acceptedAtSprintEnd': {green: 0, yellow: 0, classifications: ['scrum'], colorFn: 'percent'},
+     '__ratioEstimated': {green: 0, yellow: 0, classifications: ['scrum','other'], colorFn: 'percent'},
+     '__planned': {green: 0, yellow: 0, classifications: ['scrum'], colorFn: 'pointsPercent'},
+     '__currentPlanned': {green: 0, yellow: 0, classifications: ['scrum'], colorFn: 'pointsPercent'},
+     '__velocity': {green: 0, yellow: 0, classifications: ['scrum'], colorFn: 'pointsPercent'},
+     '__addedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum'], colorFn: 'scope'},
+     '__removedScope': {green: 0, yellow: 0, reversed: true, classifications: ['scrum'], colorFn: 'scope'},
+     '__netChurn': {green: 0, yellow: 0, reversed: true, classifications: ['scrum'], colorFn: 'percent'},
+     '__plannedLoad': {green: 0, yellow: 0, x2: true, classifications: ['scrum'], colorFn: 'percent'},
+     '__sdCycleTime': {green: 0, yellow: 0, reversed: true, classifications: ['other'], colorFn: 'percent'},
+     '__sdWIP': {green: 0, yellow: 0, reversed: true, classifications: ['other'], colorFn: 'percent'}
   },
   getTooltip: function(metricName){
       return Rally.technicalservices.util.HealthRenderers.tooltips[metricName] || 'No tooltip';
   },
-  getCellColor: function(val, metricName){
+  getCellColor: function(val, metricName, recordData){
 
     var range = Rally.technicalservices.util.HealthRenderers.metrics[metricName];
-    if (!range || val < 0){
+    if (!range){
+       return "#ffffff";
+    }
+    if (val < 0){
        return Rally.technicalservices.util.HealthRenderers.grey;
     }
 
-    val = val * 100;
+    val = Rally.technicalservices.util.HealthRenderers.getColorValue(val, metricName, recordData, range);
 
     if (range.reversed){
        if (val <= range.green){ return Rally.technicalservices.util.HealthRenderers.green; }
@@ -77,16 +81,34 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
     }
     return color;
   },
+  getColorValue: function(val, metricName, recordData, range){
 
+      switch(range.colorFn){
+         case 'percent':
+            return val * 100;
+            break;
+
+        case 'pointsPercent':
+            var plannedVelocity = recordData.__iteration && recordData.__iteration.PlannedVelocity;
+            return plannedVelocity ? val/plannedVelocity * 100 : -1;
+            break;
+
+         case 'scope':
+            var plannedPoints = recordData.__planned;
+            return plannedPoints ? val/plannedPoints * 100 : -1;
+            break;
+      }
+      return val;
+  },
   /*
   returns the distribution of color indicators for the summary tab
   */
-  getVisualHealthIndex: function(recordData){
-    var colors = [];
 
+  getVisualHealthIndex: function(recordData, usePoints){
+    var colors = [];
       _.each(Rally.technicalservices.util.HealthRenderers.metrics, function(obj,key){
           if (_.contains(obj.classifications, recordData.classification)){
-              var color = Rally.technicalservices.util.HealthRenderers.getCellColor(recordData[key],key);
+              var color = Rally.technicalservices.util.HealthRenderers.getCellColor(recordData[key],key,recordData);
               colors.push(color);
           }
       });

@@ -58,7 +58,7 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.OtherGrid',{
            text: 'Average Accepted Stories per Day ' + units,
            sortable: false,
            flex: 1,
-           renderer: this._numberRenderer,
+           renderer: this._decimalRenderer,
            listeners: {
                 afterrender: this._initTooltip
             }
@@ -67,7 +67,7 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.OtherGrid',{
          text: 'Average Cycle Time (Days)',
          sortable: false,
          flex: 1,
-         renderer: this._numberRenderer,
+         renderer: this._decimalRenderer,
          listeners: {
               afterrender: this._initTooltip
           }
@@ -85,7 +85,7 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.OtherGrid',{
             text: 'Average Work In-Progress per Day ' + units,
             sortable: false,
             flex: 1,
-            renderer: this._numberRenderer,
+            renderer: this._decimalRenderer,
             listeners: {
                  afterrender: this._initTooltip
              }
