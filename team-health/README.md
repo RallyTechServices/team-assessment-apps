@@ -2,8 +2,6 @@
 
 ## Summary/Description
 
-![screenshot](./images/screenshot.png "This is an example")
-
 For all the projects in the selected "Domain" (or project scope if no domain field is configured), this app will classify the teams according to the following criteria:
 
 ##### Scrum
@@ -22,11 +20,15 @@ For all the projects in the selected "Domain" (or project scope if no domain fie
 ##### Inactive
 * No work items have been modified within the active days range (Active Days is set in the app settings)
 
-
 The app will show the following basic health indicators for each classification:
 
-### Scrum
+### Summary
 
+![screenshot](./images/summary.png "Summary")
+Shows a summary of teams based on classification.  The coloring represents the cell colors for the health indicators of each team.  Program level and Inactive teams will not have a summary.  
+
+### Scrum
+![screenshot](./images/scrum.png "Scrum")
 #### Iteration Planned Velocity
 The planned velocity set on the Iteration
 
@@ -54,6 +56,12 @@ This is the sum of points (or count) added each day over the course of the itera
 #### Removed Scope
 This is the sum of points (or count) removed each day over the course of the iteration.  Note that the net scope change for the iteration should be represented by subtracting Removed Scope from Added Scope.     This is calculated using Iteration Cumulative Flow Data.
 
+#### Net Churn
+Net Churn is the absolute value of the Added Scope - Removed Scope / Actual Planned at Iteration Start
+
+#### Planned Load
+Planned Load is the Actual Planned at Sprint Start / Iteration Planned Velocity
+
 ## App Settings
 
 ##### Project Domain Field
@@ -62,6 +70,30 @@ If not using the project scope for the projects to show, select a custom dropdow
 ##### Thresholds
 For most metrics listed above, there is a threshold slider that will determine how to color the cells according to a percentage of the actual planned points or count.  
 
+### Other
+
+#### % Items Estimated
+This is the percentage of User Stories in the "Defined" state that have a Plan Estimate > 0.
+
+#### # Defined Stories
+This is the number of User Stories in the "Defined" state.
+
+#### Accepted Stories (Points or Count)
+The sum of the Plan Estimate of User Stories accepted in the last number of Active days (per the app settings) OR the count of the user stories accepted in the last number of Active Days.  
+
+#### Average Cycle Time
+The average cycle time for the user stories accepted in the last number of Active days.  CycleTime is defined as the number of days from when the story last transitioned into or past the In-Progress state to when the user story last transitioned into or past the Accepted state.  
+
+#### Cycle Time CoV
+The coefficient of variation of the cycle time (Standard Deviation / Average Cycle Time).
+
+#### Average Work In Progress (Points or Count)
+The average number (or sum of plan estimate) of user stories in progress each day over the past number of active days.
+
+#### Work In Progress CoV
+ The coefficient of variation of the work in progress (Standard Deviation / Average work in progress).
+
+**NOTE:  This app uses the Lookback API and Performance may be slow if a large number of teams are assigned to the selected domains.**
 
 ## Development Notes
 

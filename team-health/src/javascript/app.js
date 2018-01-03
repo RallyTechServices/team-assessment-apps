@@ -866,6 +866,10 @@ Ext.define("team-health", {
        Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.green = range[0];
        Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.yellow = range[1];
 
+       var range = this._getRangeFromSettings(settings, 'netChurn');
+       Rally.technicalservices.util.HealthRenderers.metrics.__netChurn.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__netChurn.yellow = range[1];
+
        var range = this._getRangeFromSettings(settings, 'plannedLoad');
        Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
        Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.yellow = range[0];
