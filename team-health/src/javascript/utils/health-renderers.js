@@ -54,7 +54,7 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
   getCellColor: function(val, metricName){
 
     var range = Rally.technicalservices.util.HealthRenderers.metrics[metricName];
-    if (!range){
+    if (!range || val < 0){
        return Rally.technicalservices.util.HealthRenderers.grey;
     }
 
@@ -77,12 +77,13 @@ Ext.define('Rally.technicalservices.util.HealthRenderers',{
     }
     return color;
   },
-  
+
   /*
   returns the distribution of color indicators for the summary tab
   */
   getVisualHealthIndex: function(recordData){
     var colors = [];
+
       _.each(Rally.technicalservices.util.HealthRenderers.metrics, function(obj,key){
           if (_.contains(obj.classifications, recordData.classification)){
               var color = Rally.technicalservices.util.HealthRenderers.getCellColor(recordData[key],key);

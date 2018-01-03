@@ -203,6 +203,9 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         }
       }
     },{
+      name: '__defined',
+      defaultValue: -1
+    },{
       name: 'projectName',
       convert: function(value, record){
           if (record.get('project') && record.get('project').Name ){
@@ -266,6 +269,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
             definedArtifacts = this.get('__definedArtifacts') || [],
             history = this.get('__history') || [];
 
+        this.set('__defined', definedArtifacts.length);
         //%estimated
         var estimated = 0,
             total = 0;
@@ -275,7 +279,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
            }
            total++;
         }
-        var ratioEstimated = total > 0 ? estimated/total : 0;
+        var ratioEstimated = total > 0 ? estimated/total : -1;
         this.set('__ratioEstimated', ratioEstimated);
 
         var activeDays = this.get('__activeDays');
