@@ -1,43 +1,20 @@
 Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
     extend: 'Ext.data.Model',
-    logger: new Rally.technicalservices.Logger(),
+  //  logger: new Rally.technicalservices.Logger(),
     fields: [{
-        name: 'project',
-        type: 'object'
-      },{
-        name: 'classification'
-      },{
-        name: 'team'
-    },{
-        name: '__iteration',
-        type: 'object'
-    },{
-        name: '__cfdRecords',
-        type: 'object'
-    },{
-        name: '__artifacts',
-        type: 'object'
-      },{
-          name: '__plannedLoad',
-          defaultValue: -1
-       },{
-           name: '__ratioEstimated',
-           defaultValue: -1
-       },{
-          name: '__planned',
-          defaultValue: -1
-      },{
-          name: '__currentPlanned',
-          defaultValue: -1
-      },{
-          name: '__velocity',
-          defaultValue: -1
-      },{
-          name: '__acceptedAfterSprintEnd',
-          defaultValue: -1
-      },{
-          name: '__acceptedAfterSprintEnd',
-          defaultValue: -1
+        name: 'project', type: 'object'},{
+        name: 'classification'},{
+        name: 'team' },{
+        name: '__iteration', type: 'object' },{
+        name: '__cfdRecords', type: 'object' },{
+        name: '__artifacts', type: 'object' },{
+        name: '__plannedLoad', defaultValue: -1 },{
+        name: '__ratioEstimated', defaultValue: -1 },{
+        name: '__planned', defaultValue: -1 },{
+        name: '__currentPlanned', defaultValue: -1 },{
+        name: '__velocity', defaultValue: -1 },{
+        name: '__acceptedAtSprintEnd', defaultValue: -1 },{
+        name: '__acceptedAfterSprintEnd', defaultValue: -1
       },{
           name: '__addedScope',
           defaultValue: 0
@@ -246,7 +223,6 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
          this.set('__acceptedArtifacts', acceptedArtifacts);
 
          this.set('__activeDays', activeDays);
-         this.logger.log('updateOotherData',acceptedArtifacts, definedArtifacts);
          this.recalculate(usePoints, skipZeroForEstimation, doneStates, projects);
     },
 
@@ -261,7 +237,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
           this._calculateKanbanMetrics(usePoints, skipZeroForEstimation, doneStates, projects);
       }
 
-      this.set('__healthIndex', Rally.technicalservices.util.HealthRenderers.getVisualHealthIndex(this.getData()));
+      this.set('__healthIndex', Rally.technicalservices.util.HealthRenderers.getVisualHealthIndex(this.getData(), usePoints));
     },
     _calculateKanbanMetrics: function(usePoints, skipZeroForEstimation, doneStates, projects){
 
@@ -285,9 +261,13 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         var activeDays = this.get('__activeDays');
 
         //CycleTime
-        var cycleTimes = this._calculateDailyCycleTime(acceptedArtifacts, activeDays);
-        var avgCycletime = Ext.Array.mean(cycleTimes);
-        var sdCycleTime = avgCycletime > 0 ? Rally.technicalservices.util.Health.getStandardDeviation(cycleTimes) / avgCycletime : -1;
+        var cycleTimes = this._calculateDailyCycleTime(acceptedArtifacts, activeDays),
+            avgCycletime = -1,
+            sdCycleTime = -1;
+        if (cycleTimes.length > 0){
+           avgCycletime = Ext.Array.mean(cycleTimes);
+           sdCycleTime = avgCycletime > 0 ? Rally.technicalservices.util.Health.getStandardDeviation(cycleTimes) / avgCycletime : -1;
+        }
 
         //Throughput
         var throughput = this._calculateDailyThroughput(acceptedArtifacts, activeDays, usePoints);
@@ -296,7 +276,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         var wip = Rally.technicalservices.util.Health.getDailyWIP(history,activeDays,usePoints);
         var avgWIP = Ext.Array.mean(wip);
         var sdWIP = avgWIP > 0 ? Rally.technicalservices.util.Health.getStandardDeviation(wip)/avgWIP : -1;
-        this.logger.log('_calculateKanbanMetrics', wip, throughput, cycleTimes);
+      //  this.logger.log('_calculateKanbanMetrics', wip, throughput, cycleTimes);
         this.set('__avgCycleTime', avgCycletime);
         this.set('__sdCycleTime', sdCycleTime);
         this.set('__avgThroughput', Ext.Array.mean(throughput));

@@ -148,13 +148,13 @@ Ext.define("team-health", {
         }
      }];
 
-     this.logger.log('selectors', selectors);
+    // this.logger.log('selectors', selectors);
      this.callParent([selectors]);
   },
   _tabChange: function(btn, pressed){
 
      var btns = this.query('rallybutton[toggleGroup=classificationView]');
-     this.logger.log('_tabChange', btns.length);
+    // this.logger.log('_tabChange', btns.length);
      var selectedBtn = this.getSelectedButton();
      if (!selectedBtn){ return; }
 
@@ -222,7 +222,7 @@ Ext.define("team-health", {
       we can fetch the other data nad the initial scrum data
   **/
     _initializeData: function(workItemData){
-      this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
+
       var data = [];
       var workItemInfo = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(workItemData, this.getActiveDays());
       this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
@@ -370,6 +370,7 @@ Ext.define("team-health", {
           removeUnauthorizedSnapshots: true,
           limit: 'Infinity',
           hydrate: ['ScheduleState','Project'],
+          useHttpPost: true,
           sorters: [{
              property: '_ValidTo',
              direction: 'ASC'
@@ -396,7 +397,6 @@ Ext.define("team-health", {
               acceptedHash = this._getHashByField(acceptedItems, 'Project','Name');
 
 
-        this.logger.log('_proecessOtherData hashes', historyHash,definedHash,acceptedHash);
 
         Ext.Array.each(this.data, function(d){
 
@@ -429,7 +429,6 @@ Ext.define("team-health", {
          return Ext.Array.contains(scrumTeams, i.Project.ObjectID);
       });
 
-      this.logger.log('projectIterations', this.projectIterations);
 
       this.setLoading('Fetching Iteration Data...');
       Deft.Promise.all([
@@ -454,7 +453,6 @@ Ext.define("team-health", {
      var cfdHash = this._getHashByField(icfd, 'IterationObjectID'),
          artifactHash = this._getHashByField(artifacts, 'Project', 'Name');
 
-      this.logger.log('_proecessData cfdHash', cfdHash);
 
       Ext.Array.each(this.data, function(d){
 
@@ -492,7 +490,6 @@ Ext.define("team-health", {
            isOther = tab === 'other',
            isSummary = tab === 'summary';
 
-      this.logger.log('_displaySelectedView', tab, this.data);
 
       this._clearView();
 
@@ -531,8 +528,8 @@ Ext.define("team-health", {
       }
 
       if (tab === 'summary'){
-          filteredData = Ext.Array.sort(filteredData, function(d){
-              return d.classification + d.team;
+          filteredData = _.sortBy(filteredData, function(d){
+              return d.get('team');
           });
 
           this._addSummaryCharts(filteredData);
@@ -581,13 +578,37 @@ Ext.define("team-health", {
             chartColors: colors,
             xtype: 'rallychart',
             width: '50%',
+            loadMask: false,
             chartConfig: {
                 chart: {type: 'pie'},
-                title: { text: typeDisplay },
+                title: {
+                  text: typeDisplay,
+                  style: {
+                      color: 'black',
+                      fontFamily: 'ProximaNovaSemiBold',
+                      fontSize: '14px',
+                      textTransform: 'uppercase'
+                  },
+                  margin: 0
+                },
                 plotOptions: {
                   pie: {
                     showInLegend: false,
-                    dataLabels: {enabled: false}
+                    size: 200,
+                    tooltip: {
+                      headerFormat: "",
+                      pointFormat: '<span style="color:{point.color}">\u25CF</span><b>{point.y}</b>'
+                    },
+                    dataLabels: {
+                       enabled: true,
+                       format: '{point.percentage:.1f} %',
+                       distance: -25,
+                       style: {
+                           color: 'black',
+                           fontFamily: 'ProximaNovaSemiBold',
+                           fontSize: '14px'
+                       }
+                   }
                     }
                 }
             },
@@ -597,7 +618,7 @@ Ext.define("team-health", {
       return {
          xtype: 'container',
          html: '<div class="no-data-container"><div class="secondary-message">No data for ' + typeDisplay + ' teams.</div></div>',
-         width: '50%'
+         width: '33%'
       };
 
     },
@@ -650,7 +671,6 @@ Ext.define("team-health", {
          projectIterations[i.get('Project').Name].push(i.getData());
       });
 
-      this.logger.log('_getProjectIterations', projectIterations);
 
       Ext.Object.each(projectIterations, function(projName, iterations){
          if (iterations.length >= iterationsAgo){
@@ -754,7 +774,7 @@ Ext.define("team-health", {
 
     },
     _fetchArtifactData: function(model, projectIterations){
-        this.logger.log('_fetchArtifactData', model, projectIterations);
+
         var filters = _.reduce(projectIterations, function(result, obj, projName){
              if (obj){
                 result.push({
@@ -845,6 +865,10 @@ Ext.define("team-health", {
        var range = this._getRangeFromSettings(settings, 'removedScope');
        Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.green = range[0];
        Rally.technicalservices.util.HealthRenderers.metrics.__removedScope.yellow = range[1];
+
+       var range = this._getRangeFromSettings(settings, 'netChurn');
+       Rally.technicalservices.util.HealthRenderers.metrics.__netChurn.green = range[0];
+       Rally.technicalservices.util.HealthRenderers.metrics.__netChurn.yellow = range[1];
 
        var range = this._getRangeFromSettings(settings, 'plannedLoad');
        Rally.technicalservices.util.HealthRenderers.metrics.__plannedLoad.green = range[1];
