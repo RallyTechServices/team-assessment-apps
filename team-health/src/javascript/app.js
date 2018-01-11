@@ -180,6 +180,12 @@ Ext.define("team-health", {
      this._displaySelectedView();
   },
   _updateView: function(){
+      this._clearView();
+      this.otherDataLoaded = false;
+      this.scrumDataLoaded = false;
+      this.classificationDataLoaded = false;
+      this.data = null;
+      this.addAppMessage("Click Update to load team data.")
       this.down('#updateButton').focus();
   },
 
@@ -236,7 +242,7 @@ Ext.define("team-health", {
       we can fetch the other data nad the initial scrum data
   **/
     _initializeData: function(workItemData){
-
+      this.logger.log('_initializeData', workItemData);
       var data = [];
       var workItemInfo = CATS.teamassessmentapps.utils.WorkItemUtility.calculateWorkItemStats(workItemData, this.getActiveDays());
       this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
@@ -253,6 +259,7 @@ Ext.define("team-health", {
          data.push(row);
       }, this);
       this.data = data ;
+      this.classificationDataLoaded = true;
 
       this._displaySelectedView();
 
@@ -535,6 +542,11 @@ Ext.define("team-health", {
       }
     },
     _displaySelectedView: function(){
+      if (!this.classificationDataLoaded){
+         this._updateView();
+         return;
+      }
+
        var tab  = this.getSelectedTab(),
            isScrum = tab === 'scrum',
            isOther = tab === 'other',
