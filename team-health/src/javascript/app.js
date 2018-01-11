@@ -43,25 +43,18 @@ Ext.define("team-health", {
 
      var selectors = [{
        xtype: 'rallybutton',
-       text: 'Summary',
-       itemId: 'classicficationBtn-summary',
-       margin: '10 -1 10 25',
-       pressed: true,
-       cls: 'primary rly-small',
-       toggleGroup: 'classificationView',
-       toggleHandler: this._tabChange,
-       style: {
-          borderBottomRightRadius: 0,
-          borderTopRightRadius: 0
-       },
-       scope: this
+       text: 'Update',
+       handler: this._updateViewButton,
+       margin: 10,
+       scope: this,
+       itemId: 'updateButton'
      },{
        xtype: 'rallybutton',
        text: 'Scrum',
        itemId: 'classicficationBtn-scrum',
-       margin: '10 -1 10 -1',
-       pressed: false,
-       cls: 'secondary rly-small',
+       margin: '10 -1 10 25',
+       pressed: true,
+       cls: 'primary rly-small',
        iconCls: 'icon-graph',
        toggleGroup: 'classificationView',
        toggleHandler: this._tabChange,
@@ -106,7 +99,7 @@ Ext.define("team-health", {
        xtype: 'rallybutton',
        text: 'Inactive',
        itemId: 'classicficationBtn-inactive',
-       margin: '10 25 10 -1',
+       margin: '10 -1 10 -1',
        cls: 'secondary rly-small',
        iconCls: 'icon-box',
        toggleGroup: 'classificationView',
@@ -117,14 +110,28 @@ Ext.define("team-health", {
        toggleHandler: this._tabChange,
        scope: this
      },{
+       xtype: 'rallybutton',
+       text: 'Summary',
+       itemId: 'classicficationBtn-summary',
+       margin: '10 10 10 -1',
+       pressed: false,
+       cls: 'secondary rly-small',
+       toggleGroup: 'classificationView',
+       toggleHandler: this._tabChange,
+       style: {
+          borderBottomRightRadius: 0,
+          borderTopRightRadius: 0
+       },
+       scope: this
+     },{
        xtype:'rallynumberfield',
        itemId: 'iterationsAgo',
        fieldLabel: '# Iterations Ago',
        labelAlign: 'right',
+       labelWidth: 100,
        minValue: 1,
        maxValue: this.maxIterationsAgo,
        margin: 10,
-       value: 1,
        emptyText: 'Last Iteration',
        listeners: {
           scope: this,
@@ -139,6 +146,7 @@ Ext.define("team-health", {
         fieldLabel: 'Metric',
         displayField: 'name',
         valueField: 'value',
+        labelWidth: 50,
         itemId: 'metric',
         labelAlign: 'right',
         margin: 10,
@@ -171,11 +179,17 @@ Ext.define("team-health", {
      }, this);
      this._displaySelectedView();
   },
-
   _updateView: function(){
+      this.down('#updateButton').focus();
+  },
+
+  _updateViewButton: function(){
 
     this.logger.log('_updateView', this.getIterationsAgo(), this.domainProjects);
     this._clearView();
+    this.otherDataLoaded = false;
+    this.scrumDataLoaded = false;
+    this.down('#iterationsAgo').setValue(null);
 
     if (!this.domainProjects){  // || this.domainProjects.length === 0){
        this.addAppMessage("Project information loading...");
@@ -240,15 +254,18 @@ Ext.define("team-health", {
       }, this);
       this.data = data ;
 
-      this.setLoading('Fetching Other and Scrum data...');
-      Deft.Promise.all([
-        this._fetchOtherData(this.getActiveDays()),
-        this._fetchScrumData(this.projectIterations)
-      ], this).then({
-         success: this._displaySelectedView,
-         failure: this._showErrorNotification,
-         scope: this
-      }).always(function(){ this.setLoading(false); },this);
+      this._displaySelectedView();
+
+
+      // this.setLoading('Fetching Other and Scrum data...');
+      // Deft.Promise.all([
+      //   this._fetchOtherData(this.getActiveDays()),
+      //   this._fetchScrumData(this.projectIterations)
+      // ], this).then({
+      //    success: this._displaySelectedView,
+      //    failure: this._showErrorNotification,
+      //    scope: this
+      // }).always(function(){ this.setLoading(false); },this);
     },
 
     _updateUsePoints: function(){
@@ -305,7 +322,7 @@ Ext.define("team-health", {
         var fromActiveDate = Rally.util.DateTime.toIsoString(Rally.util.DateTime.add(new Date(),'day',-activeDays));
 
         this.logger.log('_fetchHistory teams', otherTeams, fromActiveDate);
-
+        this.setLoading('Fetching Other data...');
         Deft.Promise.all([
           this._fetchHistory(fromActiveDate, otherTeams),
           this._fetchWsapiRecords({
@@ -340,7 +357,7 @@ Ext.define("team-health", {
             },
             failure: deferred.reject,
             scope: this
-        });
+        }).always(function(){ this.setLoading(false); },this);
       } else {
          deferred.resolve();
       }
@@ -411,6 +428,7 @@ Ext.define("team-health", {
            }
         }, this);
 
+        this.otherDataLoaded = true;
     },
     /**
       BEGIN Scrum data collection
@@ -443,6 +461,37 @@ Ext.define("team-health", {
           scope: this
       }).always(function(){ this.setLoading(false); },this);
     },
+    hasScrumTeams: function(){
+      var scrumTeamsExist = _.find(this.data, function(d){
+         return d.get('classification') === 'scrum';
+      });
+      return scrumTeamsExist && true;
+    },
+    hasOtherTeams: function(){
+      var teamsExist = _.find(this.data, function(d){
+         return d.get('classification') === 'other';
+      });
+      return teamsExist && true;
+    },
+    hasOtherData: function(){
+       //if there are no scrum teams, this will return true
+       //if there are scrum teams, then this will return true if there is data loaded
+
+       if (!this.hasOtherTeams()){
+          return true;
+       }
+       return this.otherDataLoaded;
+    },
+    hasScrumData: function(){
+       //if there are no scrum teams, this will return true
+       //if there are scrum teams, then this will return true if there is data loaded
+
+       if (!this.hasScrumTeams()){
+          return true;
+       }
+
+       return this.scrumDataLoaded;
+    },
     _processScrumData: function(results){
 
       var icfd = results[0],
@@ -467,6 +516,7 @@ Ext.define("team-health", {
          }
       }, this);
 
+      this.scrumDataLoaded = true;
       if (this.getSelectedTab() === 'scrum'){
           this._addGrid(this.data);
       }
@@ -489,7 +539,7 @@ Ext.define("team-health", {
            isScrum = tab === 'scrum',
            isOther = tab === 'other',
            isSummary = tab === 'summary';
-
+      this.logger.log('_displaySelectedView', tab);
 
       this._clearView();
 
@@ -498,7 +548,32 @@ Ext.define("team-health", {
 
 
        if (tab === 'scrum' && this.getIterationsAgo() < 1 || this.getIterationsAgo() > this.maxIterationsAgo){
-         this.addAppMessage("Please select a valid # Iterations Ago between 1 and " + this.maxIterationsAgo + ".");
+         if (this.hasScrumTeams()){
+           this.addAppMessage("Please select a valid # Iterations Ago between 1 and " + this.maxIterationsAgo + ".");
+         } else {
+           this.addAppMessage("No teams classified as 'Scrum' exist in the selected scope or domain.");
+         }
+         return;
+       }
+
+       this.logger.log('_displaySelectedView ', isOther, isSummary, this.otherDataLoaded);
+       if ((isOther || isSummary) && !this.hasOtherData()){
+          this._fetchOtherData(this.getActiveDays()).then({
+            success: this._displaySelectedView,
+            failure: this._showErrorNotification,
+            scope: this
+          });
+          this.logger.log('_displaySelectedView return', isOther, isSummary, this.otherDataLoaded);
+          return;
+       }
+
+       if (isOther && !this.hasOtherTeams()){
+         this.addAppMessage("No teams classified as 'Other' exist in the selected scope or domain.");
+         return;
+       }
+
+       if (tab === 'summary' && !this.hasScrumData()){
+         this.addAppMessage("Please navigate to the Scrum tab and select and iterations ago to load Scrum data for the desired iteration.");
          return;
        }
 
@@ -506,7 +581,7 @@ Ext.define("team-health", {
            return;
         }
 
-          this._addGrid(this.data);
+        this._addGrid(this.data);
 
     },
     _addGrid: function(data){
