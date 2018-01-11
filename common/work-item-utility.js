@@ -70,7 +70,10 @@ Ext.define('CATS.teamassessmentapps.utils.WorkItemUtility',{
           removeUnauthorizedSnapshots: true,
           limit: 'Infinity',
           useHttpPost: true,
-          sorters: {"_ValidFrom": -1}
+          sorters: [{
+             property: "_ValidFrom",
+             direction: "DESC"
+          }]
       }).load({
          callback: function(records, operation, success){
             if (operation.wasSuccessful()){
