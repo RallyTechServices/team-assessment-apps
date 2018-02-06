@@ -181,10 +181,14 @@ Ext.define("CATS.teamassessmentapps.app.DomainApp", {
            });
 
            this.logger.log('Project Filters', filters.toString());
+           var fetch = ['ObjectID','Name','Children:summary[State]'];
+           if (this.getProjectDomainField()){
+              fetch.push(this.getProjectDomainField());
+           }
            this._fetchWsapiRecords({
               model: 'Project',
               filters: filters,
-              fetch: ['ObjectID','Name','Children:summary[State]'],
+              fetch: fetch,
               limit: 'Infinity'
            }).then({
              success: function(projects){

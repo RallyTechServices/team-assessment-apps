@@ -18,14 +18,13 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.TeamHealthExporter',{
        var row = [];
 
        Ext.Array.each(cols, function(c){
-
-         var val = r.get(c.dataIndex);
-         if (Ext.isObject(val)){
-            val = val._refObjectName || val.Name;
-         }
-         if (!val || val < 0){
-           val = '';
-         }
+        var val = r.get(c.dataIndex);
+           if (Ext.isObject(val)){
+              val = val._refObjectName || val.Name;
+           }
+           if (!val || val < 0){
+             val = '';
+           }
          row.push(val);
        });
        data.push(row.join(','));
@@ -42,6 +41,9 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.TeamHealthExporter',{
      var cols = [{
           dataIndex: 'classification',
           text: 'Classification'
+        },{
+          dataIndex: 'domain',
+          text: 'Domain'
         },{
           dataIndex: 'team',
           text: 'Team'
