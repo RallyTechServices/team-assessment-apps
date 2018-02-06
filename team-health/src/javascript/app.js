@@ -248,11 +248,13 @@ Ext.define("team-health", {
       this.logger.log('_initializeData.workItemInfo', workItemInfo, this.getActiveDays());
       Ext.Array.each(this.domainProjects, function(p){
          var iteration = this.projectIterations[p.get('Name')],
+               domain = this.getProjectDomainField() ? p.get(this.getProjectDomainField()) : "",
              row = Ext.create('Rally.technicalservices.utils.DomainProjectHealthModel',{
                __iteration: iteration,
                __workItemData: workItemInfo[p.get('Name')] || {},
                project: p.getData(),
-               team: p.get('Name')
+               team: p.get('Name'),
+               domain: domain
              });
 
          row.initialize()

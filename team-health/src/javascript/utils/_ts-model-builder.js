@@ -5,6 +5,7 @@ Ext.define('Rally.technicalservices.utils.DomainProjectHealthModel', {
         name: 'project', type: 'object'},{
         name: 'classification'},{
         name: 'team' },{
+        name: 'domain' },{
         name: '__iteration', type: 'object' },{
         name: '__cfdRecords', type: 'object' },{
         name: '__artifacts', type: 'object' },{
