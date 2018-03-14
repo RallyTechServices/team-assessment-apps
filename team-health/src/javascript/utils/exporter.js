@@ -79,7 +79,7 @@ Ext.define('CArABU.teamassessmentapps.teamhealth.TeamHealthExporter',{
           text: 'Iteration'
        }];
 
-       if (this.usePoints){
+       if (usePoints){
          cols = cols.concat([{
                dataIndex: '__plannedVelocity',
                text: 'Iteration Planned Velocity'
